@@ -53,7 +53,10 @@ loginSuccess: (state, action: PayloadAction<{ user: User; token: string }>) => {
       state.isLoading = false;
       state.error = action.payload;
     },
-logout: (state) => {
+refreshUser: (state, action: PayloadAction<{ user: User }>) => {
+      state.user = action.payload.user;
+    },
+    logout: (state) => {
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
@@ -77,5 +80,5 @@ logout: (state) => {
   }
 });
 
-export const { loginStart, loginSuccess, loginFailure, logout, setPreviewRole, switchContext } = authSlice.actions;
+export const { loginStart, loginSuccess, loginFailure, logout, refreshUser, setPreviewRole, switchContext } = authSlice.actions;
 export default authSlice.reducer;

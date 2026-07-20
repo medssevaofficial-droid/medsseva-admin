@@ -72,13 +72,13 @@ React.useEffect(() => {
     testService.getExecutives().then(setExecutives).catch(() => {});
     testService.getAvailablePartners().then(setAvailablePartners).catch(() => {});
 
-    // Poll every 30 seconds so partner acceptance reflects automatically
+ 
     const interval = setInterval(() => {
       dispatch(fetchBookings());
     }, 30000);
     return () => clearInterval(interval);
   }, [dispatch]);
-  // Pre-resolve active report mapping for hidden PDF rendering
+
   const activeReport = reports.find(r => r.bookingId === selectedBooking?.id) || (selectedBooking ? {
     id: `fallback-rep-${selectedBooking.id}`,
     bookingId: selectedBooking.id,
@@ -257,7 +257,7 @@ const getStaffName = (id?: string) => {
 
   return (
     <div className="space-y-6 pb-10">
-      {/* Header */}
+     
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Diagnostic Bookings</h1>
@@ -291,7 +291,6 @@ const getStaffName = (id?: string) => {
         </div>
       </div>
 
-      {/* Stats row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-card border border-border p-4 rounded-xl shadow-sm">
           <div className="text-xs font-semibold text-muted-foreground uppercase">Total Active</div>
@@ -311,7 +310,7 @@ const getStaffName = (id?: string) => {
         </div>
       </div>
 
-      {/* Grid / Table */}
+     
       <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -443,7 +442,7 @@ const getStaffName = (id?: string) => {
         </div>
       </div>
 
-      {/* Details Side Drawer */}
+     
       <AnimatePresence>
         {selectedBooking && (
           <>
@@ -480,7 +479,7 @@ const getStaffName = (id?: string) => {
                 </button>
               </div>
 
-              {/* Drawer Content */}
+             
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
                 
                 {/* Workflow Actions */}
@@ -506,7 +505,7 @@ const getStaffName = (id?: string) => {
                       </>
                     )}
                     
-               {/* Payment pending badge for cash/lab bookings */}
+             
                     {(selectedBooking as any).paymentStatus?.toLowerCase() === 'pending' &&
                       selectedBooking.status !== 'Cancelled' && (
                       <div className="w-full mb-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
@@ -627,7 +626,7 @@ const getStaffName = (id?: string) => {
                   </div>
                 </div>
 
-                {/* Items Booked */}
+              
                 <div>
                   <h3 className="text-sm font-bold mb-2 flex items-center gap-2 text-foreground">
                     Diagnosed Items
@@ -660,7 +659,7 @@ const getStaffName = (id?: string) => {
                   </div>
                 </div>
 
-                {/* Timeline Visualizer */}
+                
                 <div className="border-t border-border pt-4">
                   <h3 className="text-sm font-bold mb-4 text-foreground">Diagnostic Workflow Timeline</h3>
                   <div className="relative pl-6 border-l border-dashed border-border space-y-6">
@@ -699,7 +698,7 @@ const getStaffName = (id?: string) => {
               </div>
             </motion.div>
 
-          {/* Inner Drawer: Assign Partner */}
+         
             <AnimatePresence>
               {isAssigningPartner && (
                 <>
@@ -746,7 +745,7 @@ const getStaffName = (id?: string) => {
               )}
             </AnimatePresence>
 
-            {/* Inner Drawer: Assign Staff Selection */}
+        
             <AnimatePresence>
               {isAssigning && (
                 <>
@@ -772,7 +771,7 @@ const getStaffName = (id?: string) => {
                       </button>
                     </div>
                   <div className="mt-4 space-y-2 max-h-[300px] overflow-y-auto">
-                      {/* HOME bookings use real executives from backend; LAB uses mock staff */}
+                     
                      {((selectedBooking as any)?.collectionMode === 'HOME'
                         ? allExecutives
                         : assignType === 'phlebotomist' ? phlebotomists : technicians
@@ -803,7 +802,7 @@ const getStaffName = (id?: string) => {
         )}
       </AnimatePresence>
 
-      {/* 🖨️ Off-Screen Hidden Canvas Layer for exact PDF DOM Snapshotting */}
+   
       {selectedBooking && activeReport && (
         <div className="fixed top-0 left-[-9999px] pointer-events-none opacity-0 overflow-hidden z-[-9999]">
          <ReportPDFDocument 

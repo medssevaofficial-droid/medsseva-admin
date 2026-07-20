@@ -1,128 +1,217 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Banner, Coupon, Campaign, ApiLog } from '../../types';
-
-export interface AppConfigState {
-  layoutSections: string[];
-  categoriesPriority: string[];
-  emergencyAlert: {
-    isActive: boolean;
-    title: string;
-    message: string;
-    type: 'info' | 'warning' | 'critical';
-  };
-  featureToggles: {
-    enableOnlineConsultations: boolean;
-    enableAiSymptomsChat: boolean;
-    enableReportsWallet: boolean;
-    enableUrgentCollection: boolean;
-  };
-  healthTips: {
-    id: string;
-    title: string;
-    description: string;
-    icon: string;
-  }[];
-  primaryColor: string;
-}
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { Banner, CmsConfig, EmergencyAlert, CmsPage, CmsAuditLog } from '../../types/cms';
+import { cmsService } from '../../services/api';
 
 interface CmsState {
   banners: Banner[];
-  coupons: Coupon[];
-  campaigns: Campaign[];
-  apiLogs: ApiLog[];
-  appConfig: AppConfigState;
+  config: CmsConfig | null;
+  alerts: EmergencyAlert[];
+  pages: CmsPage[];
+  auditLogs: CmsAuditLog[];
+  loading: boolean;
+  saving: boolean;
+  error: string | null;
+  successMessage: string | null;
 }
 
-const MOCK_BANNERS: Banner[] = [
-  { id: 'b-1', title: 'Full Body Wellness Offer', imageUrl: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118', linkType: 'Package', linkValue: 'pkg-1', isActive: true, sortOrder: 1 },
-  { id: 'b-2', title: 'Monsoon Health Screen 20% OFF', imageUrl: 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528', linkType: 'Category', linkValue: 'wellness', isActive: true, sortOrder: 2 }
-];
-
-const MOCK_COUPONS: Coupon[] = [
-  { id: 'c-1', code: 'HEALTH20', discountType: 'Percentage', discountValue: 20, minOrderValue: 1000, maxDiscount: 500, expiryDate: '2026-12-31', isActive: true, usageCount: 142 },
-  { id: 'c-2', code: 'FLAT150', discountType: 'Fixed', discountValue: 150, minOrderValue: 500, expiryDate: '2026-06-30', isActive: true, usageCount: 85 }
-];
-
-const MOCK_CAMPAIGNS: Campaign[] = [
-  { id: 'cmp-1', title: 'Diabetic Week Follow-up', channel: 'WhatsApp', recipientsCount: 1200, scheduledFor: '2026-05-14T10:00:00Z', status: 'Scheduled', messageTemplate: 'Hi {{name}}, this is MedsSeva. Remember to book your quarterly HbA1c test at a special discount!' },
-  { id: 'cmp-2', title: 'New Year Wellness Launch', channel: 'Email', recipientsCount: 5000, scheduledFor: '2026-01-01T09:00:00Z', status: 'Sent', messageTemplate: 'Kickstart 2026 with a healthy body...' }
-];
-
-const MOCK_API_LOGS: ApiLog[] = [
-  { id: 'log-1', timestamp: '2026-05-13T17:00:05Z', method: 'GET', path: '/api/v1/bookings', statusCode: 200, latencyMs: 42, ip: '45.12.44.22', userAgent: 'Mozilla/5.0' },
-  { id: 'log-2', timestamp: '2026-05-13T17:01:12Z', method: 'POST', path: '/api/v1/reports/rep-1/approve', statusCode: 200, latencyMs: 148, ip: '12.98.32.101', userAgent: 'Axios/1.6.0' }
-];
-
-const DEFAULT_CONFIG: AppConfigState = {
-  layoutSections: ['hero_banner', 'quick_categories', 'seva_check', 'health_campaigns', 'trending_packages', 'ai_health_tips'],
-  categoriesPriority: ['Blood', 'Diabetes', 'Thyroid', 'Cardiac', 'Liver', 'Vitamins'],
-  emergencyAlert: {
-    isActive: false,
-    title: 'Fever Outbreak Advisory',
-    message: 'Higher volumes of dengue testing in your area. Pre-book collection slots 1 day early.',
-    type: 'warning'
-  },
-  featureToggles: {
-    enableOnlineConsultations: true,
-    enableAiSymptomsChat: true,
-    enableReportsWallet: true,
-    enableUrgentCollection: false
-  },
-  healthTips: [
-    { id: 'tip-1', title: 'Hydration First', description: 'Drinking 3L water daily stabilizes plasma density, assisting valid kidney panels.', icon: 'droplet' },
-    { id: 'tip-2', title: 'Fasting Protocols', description: 'For accurate lipid screenings, avoid solid foods and coffee for exactly 10-12 hours.', icon: 'clock' }
-  ],
-  primaryColor: '#006D6F'
-};
-
 const initialState: CmsState = {
-  banners: MOCK_BANNERS,
-  coupons: MOCK_COUPONS,
-  campaigns: MOCK_CAMPAIGNS,
-  apiLogs: MOCK_API_LOGS,
-  appConfig: DEFAULT_CONFIG
+  banners: [],
+  config: null,
+  alerts: [],
+  pages: [],
+  auditLogs: [],
+  loading: false,
+  saving: false,
+  error: null,
+  successMessage: null,
 };
+
+export const fetchBanners = createAsyncThunk('cms/fetchBanners', async (_, { rejectWithValue }) => {
+  try {
+    const data = await cmsService.getBanners();
+    return data.banners as Banner[];
+  } catch {
+    return rejectWithValue('Failed to fetch banners');
+  }
+});
+
+export const createBanner = createAsyncThunk('cms/createBanner', async (payload: Partial<Banner>, { rejectWithValue }) => {
+  try {
+    const data = await cmsService.createBanner(payload);
+    return data.banner as Banner;
+  } catch {
+    return rejectWithValue('Failed to create banner');
+  }
+});
+
+export const updateBanner = createAsyncThunk('cms/updateBanner', async ({ id, ...rest }: Partial<Banner> & { id: string }, { rejectWithValue }) => {
+  try {
+    const data = await cmsService.updateBanner(id, rest);
+    return data.banner as Banner;
+  } catch {
+    return rejectWithValue('Failed to update banner');
+  }
+});
+
+export const removeBanner = createAsyncThunk('cms/removeBanner', async (id: string, { rejectWithValue }) => {
+  try {
+    await cmsService.deleteBanner(id);
+    return id;
+  } catch {
+    return rejectWithValue('Failed to delete banner');
+  }
+});
+
+export const fetchConfig = createAsyncThunk('cms/fetchConfig', async (_, { rejectWithValue }) => {
+  try {
+    const data = await cmsService.getConfig();
+    return data.config as CmsConfig;
+  } catch {
+    return rejectWithValue('Failed to fetch config');
+  }
+});
+
+export const saveConfig = createAsyncThunk('cms/saveConfig', async (payload: Partial<CmsConfig>, { rejectWithValue }) => {
+  try {
+    const data = await cmsService.updateConfig(payload);
+    return data.config as CmsConfig;
+  } catch {
+    return rejectWithValue('Failed to save config');
+  }
+});
+
+export const fetchAlerts = createAsyncThunk('cms/fetchAlerts', async (_, { rejectWithValue }) => {
+  try {
+    const data = await cmsService.getAlerts();
+    return data.alerts as EmergencyAlert[];
+  } catch {
+    return rejectWithValue('Failed to fetch alerts');
+  }
+});
+
+export const saveAlert = createAsyncThunk('cms/saveAlert', async (payload: Partial<EmergencyAlert>, { rejectWithValue }) => {
+  try {
+    const data = await cmsService.upsertAlert(payload);
+    return data.alert as EmergencyAlert;
+  } catch {
+    return rejectWithValue('Failed to save alert');
+  }
+});
+
+export const removeAlert = createAsyncThunk('cms/removeAlert', async (id: string, { rejectWithValue }) => {
+  try {
+    await cmsService.deleteAlert(id);
+    return id;
+  } catch {
+    return rejectWithValue('Failed to delete alert');
+  }
+});
+
+export const fetchPages = createAsyncThunk('cms/fetchPages', async (_, { rejectWithValue }) => {
+  try {
+    const data = await cmsService.getPages();
+    return data.pages as CmsPage[];
+  } catch {
+    return rejectWithValue('Failed to fetch pages');
+  }
+});
+
+export const savePage = createAsyncThunk('cms/savePage', async ({ slug, ...rest }: Partial<CmsPage> & { slug: string }, { rejectWithValue }) => {
+  try {
+    const data = await cmsService.updatePage(slug, rest);
+    return data.page as CmsPage;
+  } catch {
+    return rejectWithValue('Failed to save page');
+  }
+});
+
+export const fetchAuditLogs = createAsyncThunk('cms/fetchAuditLogs', async (_, { rejectWithValue }) => {
+  try {
+    const data = await cmsService.getAuditLogs();
+    return data.logs as CmsAuditLog[];
+  } catch {
+    return rejectWithValue('Failed to fetch audit logs');
+  }
+});
 
 const cmsSlice = createSlice({
   name: 'cms',
   initialState,
   reducers: {
-    upsertBanner: (state, action: PayloadAction<Banner>) => {
-      const idx = state.banners.findIndex(b => b.id === action.payload.id);
-      if (idx !== -1) {
-        state.banners[idx] = action.payload;
-      } else {
-        state.banners.push(action.payload);
-      }
+    clearCmsMessages: (state) => {
+      state.error = null;
+      state.successMessage = null;
     },
-    deleteBanner: (state, action: PayloadAction<string>) => {
-      state.banners = state.banners.filter(b => b.id !== action.payload);
-    },
-    upsertCoupon: (state, action: PayloadAction<Coupon>) => {
-      const idx = state.coupons.findIndex(c => c.id === action.payload.id);
-      if (idx !== -1) {
-        state.coupons[idx] = action.payload;
-      } else {
-        state.coupons.push(action.payload);
-      }
-    },
-    addCampaign: (state, action: PayloadAction<Campaign>) => {
-      state.campaigns.unshift(action.payload);
-    },
-    addApiLog: (state, action: PayloadAction<ApiLog>) => {
-      state.apiLogs.unshift(action.payload);
-      if (state.apiLogs.length > 50) {
-        state.apiLogs.pop();
-      }
-    },
-    updateAppConfig: (state, action: PayloadAction<Partial<AppConfigState>>) => {
-      state.appConfig = {
-        ...state.appConfig,
-        ...action.payload
-      };
-    }
-  }
+  },
+  extraReducers: (builder) => {
+    const startLoading = (state: CmsState) => { state.loading = true; state.error = null; };
+    const startSaving = (state: CmsState) => { state.saving = true; state.error = null; };
+    const stopLoading = (state: CmsState) => { state.loading = false; };
+    const stopSaving = (state: CmsState) => { state.saving = false; };
+
+    builder
+      .addCase(fetchBanners.pending, startLoading)
+      .addCase(fetchBanners.fulfilled, (state, action) => { stopLoading(state); state.banners = action.payload; })
+      .addCase(fetchBanners.rejected, (state, action) => { stopLoading(state); state.error = action.payload as string; })
+
+      .addCase(createBanner.pending, startSaving)
+      .addCase(createBanner.fulfilled, (state, action) => { stopSaving(state); state.banners.push(action.payload); state.successMessage = 'Banner created'; })
+      .addCase(createBanner.rejected, (state, action) => { stopSaving(state); state.error = action.payload as string; })
+
+      .addCase(updateBanner.pending, startSaving)
+      .addCase(updateBanner.fulfilled, (state, action) => {
+        stopSaving(state);
+        const idx = state.banners.findIndex(b => b.id === action.payload.id);
+        if (idx !== -1) state.banners[idx] = action.payload;
+        state.successMessage = 'Banner updated';
+      })
+      .addCase(updateBanner.rejected, (state, action) => { stopSaving(state); state.error = action.payload as string; })
+
+      .addCase(removeBanner.fulfilled, (state, action) => { state.banners = state.banners.filter(b => b.id !== action.payload); state.successMessage = 'Banner deleted'; })
+      .addCase(removeBanner.rejected, (state, action) => { state.error = action.payload as string; })
+
+      .addCase(fetchConfig.pending, startLoading)
+      .addCase(fetchConfig.fulfilled, (state, action) => { stopLoading(state); state.config = action.payload; })
+      .addCase(fetchConfig.rejected, (state, action) => { stopLoading(state); state.error = action.payload as string; })
+
+      .addCase(saveConfig.pending, startSaving)
+      .addCase(saveConfig.fulfilled, (state, action) => { stopSaving(state); state.config = action.payload; state.successMessage = 'Configuration saved'; })
+      .addCase(saveConfig.rejected, (state, action) => { stopSaving(state); state.error = action.payload as string; })
+
+      .addCase(fetchAlerts.pending, startLoading)
+      .addCase(fetchAlerts.fulfilled, (state, action) => { stopLoading(state); state.alerts = action.payload; })
+      .addCase(fetchAlerts.rejected, (state, action) => { stopLoading(state); state.error = action.payload as string; })
+
+      .addCase(saveAlert.pending, startSaving)
+      .addCase(saveAlert.fulfilled, (state, action) => {
+        stopSaving(state);
+        const idx = state.alerts.findIndex(a => a.id === action.payload.id);
+        if (idx !== -1) state.alerts[idx] = action.payload;
+        else state.alerts.unshift(action.payload);
+        state.successMessage = 'Alert saved';
+      })
+      .addCase(saveAlert.rejected, (state, action) => { stopSaving(state); state.error = action.payload as string; })
+
+      .addCase(removeAlert.fulfilled, (state, action) => { state.alerts = state.alerts.filter(a => a.id !== action.payload); state.successMessage = 'Alert removed'; })
+      .addCase(removeAlert.rejected, (state, action) => { state.error = action.payload as string; })
+
+      .addCase(fetchPages.pending, startLoading)
+      .addCase(fetchPages.fulfilled, (state, action) => { stopLoading(state); state.pages = action.payload; })
+      .addCase(fetchPages.rejected, (state, action) => { stopLoading(state); state.error = action.payload as string; })
+
+      .addCase(savePage.pending, startSaving)
+      .addCase(savePage.fulfilled, (state, action) => {
+        stopSaving(state);
+        const idx = state.pages.findIndex(p => p.slug === action.payload.slug);
+        if (idx !== -1) state.pages[idx] = action.payload;
+        state.successMessage = 'Page saved';
+      })
+      .addCase(savePage.rejected, (state, action) => { stopSaving(state); state.error = action.payload as string; })
+
+      .addCase(fetchAuditLogs.fulfilled, (state, action) => { state.auditLogs = action.payload; })
+      .addCase(fetchAuditLogs.rejected, (state, action) => { state.error = action.payload as string; });
+  },
 });
 
-export const { upsertBanner, deleteBanner, upsertCoupon, addCampaign, addApiLog, updateAppConfig } = cmsSlice.actions;
+export const { clearCmsMessages } = cmsSlice.actions;
 export default cmsSlice.reducer;

@@ -117,4 +117,72 @@ getExecutives: async () => {
   },
 };
 
+export const sampleService = {
+  getQueue: () => api.get('/samples/queue').then(r => r.data),
+  receiveSample: (data: {
+    bookingId: string;
+    sampleType: string;
+    condition: string;
+    notes?: string;
+    rejectionReason?: string;
+  }) => api.post('/samples/receive', data).then(r => r.data),
+  startProcessing: (bookingId: string) =>
+    api.patch(`/samples/${bookingId}/process`).then(r => r.data),
+};
+
+export const authService = {
+  getMe: () => api.get('/auth/me').then(r => r.data),
+};
+
+export const couponService = {
+  getAll: () => api.get('/coupons').then(r => r.data),
+  getById: (id: string) => api.get(`/coupons/${id}`).then(r => r.data),
+  create: (data: any) => api.post('/coupons', data).then(r => r.data),
+  update: (id: string, data: any) => api.put(`/coupons/${id}`, data).then(r => r.data),
+  toggleStatus: (id: string, isActive: boolean) => api.patch(`/coupons/${id}/status`, { isActive }).then(r => r.data),
+  delete: (id: string) => api.delete(`/coupons/${id}`).then(r => r.data),
+  getAnalytics: () => api.get('/coupons/analytics').then(r => r.data),
+};
+
+export const financeService = {
+  getSummary: () => api.get('/finance/payment-summary').then(r => r.data),
+  getPayments: (params?: { page?: number; limit?: number; status?: string; from?: string; to?: string }) =>
+    api.get('/finance/payments', { params }).then(r => r.data),
+  getPaymentById: (id: string) => api.get(`/finance/payments/${id}`).then(r => r.data),
+  createOrder: (bookingId: string) => api.post('/finance/payments/create-order', { bookingId }).then(r => r.data),
+  verifyPayment: (data: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string; bookingId: string }) =>
+    api.post('/finance/payments/verify', data).then(r => r.data),
+  getRefunds: (status?: string) => api.get('/finance/refunds', { params: status ? { status } : {} }).then(r => r.data),
+  requestRefund: (data: { paymentId: string; amount: number; reason: string; approvalNotes?: string }) =>
+    api.post('/finance/refunds', data).then(r => r.data),
+  approveRefund: (id: string) => api.post(`/finance/refunds/${id}/approve`).then(r => r.data),
+  rejectRefund: (id: string, reason: string) => api.post(`/finance/refunds/${id}/reject`, { reason }).then(r => r.data),
+  getSettlements: (status?: string) => api.get('/finance/settlements', { params: status ? { status } : {} }).then(r => r.data),
+  generateSettlement: (data: { periodStart: string; periodEnd: string; franchiseName: string; franchiseId?: string; commissionRate?: number }) =>
+    api.post('/finance/settlements/generate', data).then(r => r.data),
+  processSettlement: (id: string) => api.post(`/finance/settlements/${id}/process`).then(r => r.data),
+};
+export const analyticsService = {
+  getDashboard: () => api.get('/analytics/dashboard').then(r => r.data),
+};
+
+export const cmsService = {
+  getBanners: () => api.get('/cms/banners').then(r => r.data),
+  createBanner: (data: any) => api.post('/cms/banners', data).then(r => r.data),
+  updateBanner: (id: string, data: any) => api.put(`/cms/banners/${id}`, data).then(r => r.data),
+  deleteBanner: (id: string) => api.delete(`/cms/banners/${id}`).then(r => r.data),
+  uploadBannerImage: (file: File) => {
+    const form = new FormData();
+    form.append('image', file);
+    return api.post('/cms/banners/upload-image', form, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data);
+  },
+  getConfig: () => api.get('/cms/config').then(r => r.data),
+  updateConfig: (data: any) => api.put('/cms/config', data).then(r => r.data),
+  getAlerts: () => api.get('/cms/alerts').then(r => r.data),
+  upsertAlert: (data: any) => api.post('/cms/alerts', data).then(r => r.data),
+  deleteAlert: (id: string) => api.delete(`/cms/alerts/${id}`).then(r => r.data),
+  getPages: () => api.get('/cms/pages').then(r => r.data),
+  updatePage: (slug: string, data: any) => api.put(`/cms/pages/${slug}`, data).then(r => r.data),
+  getAuditLogs: () => api.get('/cms/audit-logs').then(r => r.data),
+};
 export default api;

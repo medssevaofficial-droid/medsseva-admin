@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAppSelector, useAppDispatch } from '../redux/hooks';
 import { switchContext } from '../redux/slices/authSlice';
-import { MapPin, Building2, Check } from 'lucide-react';
+import { MapPin, Building2, Check, Lock } from 'lucide-react';
 import { cn } from '../utils/cn';
 
 const CITIES = [
@@ -104,8 +104,8 @@ export const GlobalContextBar: React.FC = () => {
 
         <div className="md:ml-auto flex items-center gap-2 opacity-80 text-[9px]">
           {isFranchiseAdmin ? (
-            <div className="flex items-center gap-1 bg-amber-950 border border-amber-900 text-amber-400 font-black uppercase px-2 py-0.5 rounded-full select-none">
-              🔒 Region-Restricted
+          <div className="flex items-center gap-1 bg-amber-950 border border-amber-900 text-amber-400 font-black uppercase px-2 py-0.5 rounded-full select-none">
+              <Lock className="h-2.5 w-2.5" /> Region-Restricted
             </div>
           ) : (
             <div className="flex items-center gap-1 bg-emerald-950 border border-emerald-900 text-emerald-400 font-black uppercase px-2 py-0.5 rounded-full">

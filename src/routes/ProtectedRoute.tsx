@@ -1,13 +1,16 @@
-import React from 'react';
+import React, { ReactNode, useEffect, useRef, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAppSelector } from '@/redux/hooks';
+import { useAppSelector, useAppDispatch } from '@/redux/hooks';
 import { UserRole } from '@/types';
 import { usePermission } from '@/hooks/usePermission';
+import { refreshUser, logout } from '@/redux/slices/authSlice';
+import { authService } from '@/services/api';
+import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
-  children: React.ReactNode;
+  children: ReactNode;
   allowedRoles?: UserRole[];
-  permission?: string; // e.g. 'bookings.view'
+  permission?: string;
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
@@ -15,15 +18,46 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   allowedRoles,
   permission,
 }) => {
-  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+  const { isAuthenticated, user, token } = useAppSelector((state) => state.auth);
   const { can, isSuperAdmin } = usePermission();
+  const dispatch = useAppDispatch();
   const location = useLocation();
+
+  const [sessionChecked, setSessionChecked] = useState(false);
+  const hasFetched = useRef(false);
+
+  useEffect(() => {
+    if (!isAuthenticated || !token || hasFetched.current) {
+      setSessionChecked(true);
+      return;
+    }
+
+    hasFetched.current = true;
+
+    authService.getMe()
+      .then((data) => {
+        dispatch(refreshUser({ user: data.user }));
+      })
+      .catch(() => {
+        dispatch(logout());
+      })
+      .finally(() => {
+        setSessionChecked(true);
+      });
+  }, []);
 
   if (!isAuthenticated || !user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
- // Super Admin bypasses all checks
+  if (!sessionChecked) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   if (isSuperAdmin) return <>{children}</>;
 
   if (allowedRoles && !allowedRoles.includes(user.role as any)) {

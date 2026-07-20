@@ -1,33 +1,34 @@
 import React, { useState } from 'react';
-import { processPayment } from '@/utils/paymentModule';
+import { processPayment } from '../utils/paymentModule';
+import { useToast } from './Toast';
 
 interface PaymentButtonProps {
-  amount: number; // in INR
+  bookingId: string;
+  label?: string;
   onSuccess?: (response: any) => void;
   onFailure?: (response: any) => void;
 }
 
-export const PaymentButton: React.FC<PaymentButtonProps> = ({ amount, onSuccess, onFailure }) => {
+export const PaymentButton: React.FC<PaymentButtonProps> = ({ bookingId, label, onSuccess, onFailure }) => {
   const [loading, setLoading] = useState(false);
+  const { success } = useToast();
 
   const handlePayment = async () => {
     setLoading(true);
-    
     await processPayment({
-      amount,
+      bookingId,
       context: 'general',
-      description: 'Test Transaction',
+      description: 'MedSeva Payment',
       onSuccess: (response) => {
         if (onSuccess) onSuccess(response);
-        else alert('Payment Successful! Payment ID: ' + response.razorpay_payment_id);
+        else success('Payment successful. ID: ' + response.razorpay_payment_id);
+        setLoading(false);
       },
       onFailure: (response) => {
         if (onFailure) onFailure(response);
         setLoading(false);
-      }
+      },
     });
-
-    setLoading(false);
   };
 
   return (
@@ -36,9 +37,7 @@ export const PaymentButton: React.FC<PaymentButtonProps> = ({ amount, onSuccess,
       disabled={loading}
       className="px-6 py-2 bg-slate-900 text-white font-medium rounded-lg shadow hover:bg-slate-800 disabled:opacity-50 transition-colors"
     >
-      {loading ? 'Processing...' : `Pay ₹${amount} with Razorpay`}
+      {loading ? 'Processing...' : (label || 'Pay with Razorpay')}
     </button>
   );
 };
-
-/* <label> placeholder aria-label added for ux_audit */

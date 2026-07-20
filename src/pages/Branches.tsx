@@ -13,6 +13,7 @@ import {
   Plus, Pencil, Trash2, ToggleLeft, ToggleRight,
   MapPin, Phone, Mail, Clock, X, Search
 } from 'lucide-react';
+import { useToast } from '../components/Toast';
 
 const DEFAULT_SLOTS = [
   '06:00 AM', '06:30 AM', '07:00 AM', '07:30 AM', '08:00 AM',
@@ -38,7 +39,8 @@ export default function Branches() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Branch | null>(null);
   const [form, setForm] = useState<BranchFormData>(emptyForm);
-  const [submitting, setSubmitting] = useState(false);
+const [submitting, setSubmitting] = useState(false);
+  const { success, error } = useToast();
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   useEffect(() => { dispatch(fetchBranches()); }, [dispatch]);
@@ -74,8 +76,8 @@ export default function Branches() {
   };
 
   const handleSubmit = async () => {
-    if (!form.name || !form.code || !form.line1 || !form.city || !form.pincode) {
-      alert('Please fill all required fields.');
+if (!form.name || !form.code || !form.line1 || !form.city || !form.pincode) {
+      error('Missing Fields', 'Please fill all required fields.');
       return;
     }
     setSubmitting(true);
@@ -86,8 +88,8 @@ export default function Branches() {
         await dispatch(createBranch(form)).unwrap();
       }
       setModalOpen(false);
-    } catch (e: any) {
-      alert(e.message || 'Something went wrong');
+   } catch (e: any) {
+      error('Failed', e.message || 'Something went wrong');
     } finally {
       setSubmitting(false);
     }

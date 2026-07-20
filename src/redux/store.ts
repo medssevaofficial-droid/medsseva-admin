@@ -16,6 +16,7 @@ import bookingReducer from './slices/bookingSlice';
 import testReducer from './slices/testSlice';
 import reportReducer from './slices/reportSlice';
 import financeReducer from './slices/financeSlice';
+import couponReducer from './slices/couponSlice';
 import cmsReducer from './slices/cmsSlice';
 import inventoryReducer from './slices/inventorySlice';
 import crmReducer from './slices/crmSlice';
@@ -27,7 +28,8 @@ const rootReducer = combineReducers({
   bookings: bookingReducer,
   tests: testReducer,
   reports: reportReducer,
-  finance: financeReducer,
+finance: financeReducer,
+coupons: couponReducer,
   cms: cmsReducer,
   inventory: inventoryReducer,
   crm: crmReducer,
@@ -36,9 +38,9 @@ const rootReducer = combineReducers({
 });
 
 const persistConfig = {
-  key: 'lms_admin_persist_v3',
+  key: 'lms_admin_persist_v4',
   storage,
-  whitelist: ['auth', 'bookings', 'tests', 'reports', 'finance', 'cms', 'inventory', 'crm'], // simulation runs volatile
+  whitelist: ['auth'],
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

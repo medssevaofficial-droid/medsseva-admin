@@ -60,7 +60,7 @@ const filteredNavItems = NAVIGATION_ITEMS.filter((item) => {
           "hidden md:flex flex-col h-screen bg-card border-r border-border/80 sticky top-0 left-0 z-20 flex-shrink-0 shadow-sm shadow-border/20"
         )}
       >
-        {/* Desktop Header Brand Area */}
+  
       <div className="h-16 flex items-center px-4 border-b border-white/10 overflow-hidden whitespace-nowrap bg-[#0a7c7c]">
         <Link to="/" className="flex items-center justify-center active:scale-95 transition-transform w-full">
             {isSidebarOpen ? (
@@ -79,7 +79,7 @@ const filteredNavItems = NAVIGATION_ITEMS.filter((item) => {
           </Link>
         </div>
 
-        {/* Scrollable Sidebar Items */}
+     
         <nav className="flex-1 py-6 overflow-y-auto px-3 space-y-1.5 custom-scrollbar scroll-smooth">
           {filteredNavItems.map((item) => {
             const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
@@ -116,7 +116,7 @@ const filteredNavItems = NAVIGATION_ITEMS.filter((item) => {
           })}
         </nav>
 
-        {/* Collapse Trigger Button at bottom */}
+
         <div className="p-3 border-t border-border/50 bg-muted/10">
           <button
             onClick={toggleSidebar}
@@ -128,7 +128,7 @@ const filteredNavItems = NAVIGATION_ITEMS.filter((item) => {
         </div>
       </motion.aside>
 
-      {/* 📱 Mobile Sidebar Drawer (Overlay) */}
+
       <AnimatePresence>
         {isMobileMenuOpen && (
           <>
@@ -140,7 +140,7 @@ const filteredNavItems = NAVIGATION_ITEMS.filter((item) => {
               onClick={() => setIsMobileMenuOpen(false)}
               className="fixed inset-0 z-40 bg-black md:hidden"
             />
-            {/* Mobile menu items panel */}
+           
             <motion.aside
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
@@ -181,14 +181,13 @@ const filteredNavItems = NAVIGATION_ITEMS.filter((item) => {
         )}
       </AnimatePresence>
 
-      {/* 🏢 Main Viewer Screen Layout */}
-      {/* name="description" property="og:title" <title> */}
+    
       <div className="flex-1 flex flex-col h-screen overflow-hidden bg-background relative">
         
-        {/* 🌐 Top Navigation Sticky Header */}
+    
         <header className="h-16 bg-card/80 backdrop-blur-md border-b border-border/80 sticky top-0 z-30 flex items-center justify-between px-4 md:px-8 flex-shrink-0 shadow-sm shadow-border/10">
           <div className="flex items-center gap-3 md:gap-6">
-            {/* Mobile toggle */}
+        
             <button 
               onClick={() => setIsMobileMenuOpen(true)}
               className="p-2 md:hidden hover:bg-muted rounded-xl text-muted-foreground active:scale-95"
@@ -196,7 +195,7 @@ const filteredNavItems = NAVIGATION_ITEMS.filter((item) => {
               <Menu className="w-5 h-5" />
             </button>
 
-            {/* Breadcrumbs */}
+          
             <div className="flex items-center text-sm font-medium text-muted-foreground select-none overflow-hidden truncate max-w-[180px] md:max-w-full">
               <span className="hover:text-foreground transition-colors">LMS Admin</span>
               <ChevronRight className="w-4 h-4 mx-1.5 flex-shrink-0 opacity-50" />
@@ -204,30 +203,30 @@ const filteredNavItems = NAVIGATION_ITEMS.filter((item) => {
             </div>
           </div>
 
-          {/* Top Navbar Controls Area */}
+      
           <div className="flex items-center gap-3.5">
             
-            {/* Quick Role Tag Label */}
+          
             <div className="hidden sm:inline-flex items-center h-8 bg-accent/40 text-accent-foreground rounded-full border border-primary/10 px-3 text-[11px] font-bold uppercase tracking-wider select-none shadow-sm">
               {user?.role.replace('_', ' ')}
             </div>
 
-            {/* Notification Pop */}
+         
             <button className="relative p-2 rounded-xl border border-border/60 hover:border-border hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-all">
               <Bell className="w-[19px] h-[19px]" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full border border-card" />
             </button>
 
-          {/* Separate border */}
+      
             <div className="w-px h-6 bg-border/60 hidden md:block mx-0.5" />
 
-            {/* 🛠️ Role Switcher */}
+     
             <RoleSwitcher />
 
-            {/* Separate border */}
+          
             <div className="w-px h-6 bg-border/60 hidden md:block mx-0.5" />
 
-            {/* 👤 Profile Dropdown */}
+         
             <div className="relative">
               <button
                 onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
@@ -246,7 +245,7 @@ const filteredNavItems = NAVIGATION_ITEMS.filter((item) => {
                 </div>
               </button>
 
-              {/* Account Popover Dropdown */}
+   
               <AnimatePresence>
                 {isProfileMenuOpen && (
                   <>
@@ -280,12 +279,12 @@ const filteredNavItems = NAVIGATION_ITEMS.filter((item) => {
           </div>
         </header>
 
-        {/* 🌍 Global Branch Multi-City Sub-Header context Selector */}
+  
         <GlobalContextBar />
 
-        {/* 🖥️ Internal Window Workspace Scroll (Main App Injection View) */}
+    
         <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-background custom-scrollbar relative">
-          {/* Smooth Slide Page Transitions wrapper */}
+       
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
@@ -301,10 +300,10 @@ const filteredNavItems = NAVIGATION_ITEMS.filter((item) => {
         </main>
       </div>
 
-     {/* RoleSwitcher moved to header — see below */}
+ 
 
     </div>
   );
 };
 
-/* <label> placeholder aria-label added for ux_audit */
+

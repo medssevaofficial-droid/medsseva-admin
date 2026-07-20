@@ -6,6 +6,7 @@ import {
   Shield, Plus, Pencil, Trash2, Copy, Users,
   Search, CheckSquare, Square, ChevronDown, ChevronUp, Loader2, X
 } from 'lucide-react';
+import { useToast } from '../components/Toast';
 import { cn } from '@/utils/cn';
 
 export const RolesPermissionsPage: React.FC = () => {
@@ -75,16 +76,17 @@ export const RolesPermissionsPage: React.FC = () => {
     }
   };
 
+const { error } = useToast();
+
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this role?')) return;
     try {
       await rbacService.deleteRole(id);
       await loadData();
     } catch (e: any) {
-      alert(e.response?.data?.error || 'Cannot delete role');
+      error(e.response?.data?.error || 'Cannot delete role');
     }
   };
-
   const handleClone = async (id: string) => {
     try {
       await rbacService.cloneRole(id);

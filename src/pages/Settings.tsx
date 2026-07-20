@@ -8,16 +8,18 @@ import {
   Globe,
   Percent
 } from 'lucide-react';
+import { useToast } from '../components/Toast';
 
 export const SettingsPage: React.FC = () => {
   const user = useAppSelector(state => state.auth.user);
   
   const [minOrderValue, setMinOrderValue] = useState('500');
-  const [comRate, setComRate] = useState('15');
+const [comRate, setComRate] = useState('15');
+  const { success } = useToast();
 
   const handleSaveConfig = (e: React.FormEvent) => {
     e.preventDefault();
-    alert('System wide platform configurations committed successfully.');
+    success('Settings Saved', 'System wide platform configurations committed successfully.');
   };
 
   return (

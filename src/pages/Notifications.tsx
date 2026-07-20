@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-import { useAppSelector, useAppDispatch } from '../redux/hooks';
-import { addCampaign } from '../redux/slices/cmsSlice';
-import { Campaign } from '../types';
+import { Campaign } from '../types/cms';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   MessageSquare, 
@@ -17,8 +15,7 @@ import {
 import { cn } from '../utils/cn';
 
 export const NotificationsPage: React.FC = () => {
-  const dispatch = useAppDispatch();
-  const campaigns = useAppSelector(state => state.cms.campaigns);
+ const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [title, setTitle] = useState('');
@@ -41,7 +38,7 @@ export const NotificationsPage: React.FC = () => {
       messageTemplate: template
     };
 
-    dispatch(addCampaign(newCmp));
+   setCampaigns(prev => [newCmp, ...prev]);
     setIsDrawerOpen(false);
     // Reset
     setTitle('');

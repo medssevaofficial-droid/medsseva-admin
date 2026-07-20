@@ -29,7 +29,7 @@ export interface NavItem {
   path: string;
   icon: any;
   roles?: UserRole[];
-  moduleKey?: string; // maps to RBAC module for permission check
+  moduleKey?: string; 
 }
 
 export const NAVIGATION_ITEMS: NavItem[] = [
@@ -37,16 +37,16 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     title: 'Dashboard',
     path: '/',
     icon: LayoutDashboard,
-    // no moduleKey = always visible to authenticated users
+  
   },
-  // Admin & User Mgmt
+
   {
     title: 'User Management',
     path: '/users',
     icon: Users,
     moduleKey: 'users',
   },
-  // Medical Configurations
+
   {
     title: 'Test Catalog',
     path: '/tests',
@@ -59,7 +59,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     icon: PackagePlus,
     moduleKey: 'packages',
   },
-  // Workflow Management
+
 {
     title: 'Bookings',
     path: '/bookings',
@@ -90,7 +90,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     icon: FilePlus2,
     moduleKey: 'reports',
   },
-  // Operations & Business
+
   {
     title: 'Payments',
     path: '/payments',
@@ -121,7 +121,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     icon: Boxes,
     moduleKey: 'inventory',
   },
-  // Communications & Content
+
   {
     title: 'Notifications & SMS',
     path: '/notifications',
@@ -140,7 +140,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     icon: MessageCircle,
     moduleKey: 'support',
   },
-  // Analytics & Tools
+
   {
     title: 'Platform Analytics',
     path: '/analytics',
@@ -153,14 +153,14 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     icon: DatabaseZap,
     moduleKey: 'audit_logs',
   },
-  // RBAC
+
   {
     title: 'Roles & Permissions',
     path: '/roles',
     icon: ShieldCheck,
     moduleKey: 'roles_permissions',
   },
- // Admin User Management — Super Admin only
+
 {
     title: 'Prescriptions',
     path: '/prescriptions',
@@ -173,7 +173,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     icon: ShieldCheck,
     roles: ['SUPER_ADMIN'],
   },
-  // Settings — no moduleKey, always visible
+
   {
     title: 'Settings',
     path: '/settings',

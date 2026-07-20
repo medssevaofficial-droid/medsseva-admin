@@ -17,6 +17,7 @@ import {
   Save
 } from 'lucide-react';
 import { cn } from '../utils/cn';
+import { useToast } from '../components/Toast';
 
 export const PackagesPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -39,7 +40,9 @@ useEffect(() => {
   const [discountedPrice, setDiscountedPrice] = useState('');
   const [selectedTestIds, setSelectedTestIds] = useState<string[]>([]);
 
-  const filteredPackages = packages.filter(pkg => 
+ const { error } = useToast();
+
+  const filteredPackages = packages.filter(pkg =>
     pkg.name.toLowerCase().includes(search.toLowerCase()) ||
     pkg.code.toLowerCase().includes(search.toLowerCase())
   );
@@ -82,11 +85,10 @@ useEffect(() => {
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !code || !price || selectedTestIds.length === 0) {
-      alert('Please fill essential details and select at least one test.');
+ if (!name || !code || !price || selectedTestIds.length === 0) {
+      error('Please fill essential details and select at least one test.');
       return;
     }
-
     const newPkg: MedicalPackage = {
       id: editingPackage?.id || `pkg-${Date.now()}`,
       code,

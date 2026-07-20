@@ -113,7 +113,7 @@ export const ReportPDFDocument: React.FC<ReportPDFDocumentProps> = ({
         lineHeight: '1.4',
       }}
     >
-      {/* ── HEADER ── */}
+     
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -192,7 +192,7 @@ export const ReportPDFDocument: React.FC<ReportPDFDocumentProps> = ({
       </div>
 
 
-      {/* ── PATIENT INFO BOX ── */}
+     
       <div style={{ margin: '10px 28px', border: `1px solid ${T.border}`, borderRadius: '6px', overflow: 'hidden' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', padding: '8px 14px', borderBottom: `1px solid ${T.border}`, gap: '12px' }}>
           <div>
@@ -269,7 +269,7 @@ export const ReportPDFDocument: React.FC<ReportPDFDocumentProps> = ({
         </div>
       </div>
 
-      {/* ── LAB REPORT HEADER BAR ── */}
+    
       <div style={{
         margin: '0 28px',
         background: T.navy,
@@ -284,7 +284,7 @@ export const ReportPDFDocument: React.FC<ReportPDFDocumentProps> = ({
         <div style={{ fontSize: '8px', fontWeight: 700, letterSpacing: '1.5px', color: '#94a3b8' }}>CONFIDENTIAL DOCUMENT</div>
       </div>
 
-      {/* ── TEST PARAMETER TABLES ── */}
+   
       <div style={{ margin: '0 28px' }}>
         {Object.entries(groupedParams).map(([groupName, params], gi) => (
           <div key={gi}>
@@ -362,7 +362,7 @@ export const ReportPDFDocument: React.FC<ReportPDFDocumentProps> = ({
         ))}
       </div>
 
-      {/* ── NOTES / REMARKS ── */}
+
       {(report.doctorInterpretation || report.clinicalNotes || report.technicianRemarks || report.doctorRemarks) && (
         <div style={{ margin: '10px 28px 0', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
           {report.clinicalNotes && (
@@ -392,7 +392,7 @@ export const ReportPDFDocument: React.FC<ReportPDFDocumentProps> = ({
         </div>
       )}
 
-      {/* ── DIGITAL SIGNATURE ── */}
+      
       {doctor?.name && (
         <div style={{ margin: '14px 28px 0', display: 'flex', justifyContent: 'flex-end' }}>
           <div style={{ textAlign: 'right' }}>
@@ -426,7 +426,7 @@ export const ReportPDFDocument: React.FC<ReportPDFDocumentProps> = ({
         </div>
       )}
 
-{/* ── FOOTER ── */}
+
       <div style={{
         margin: '14px 28px 0',
         borderTop: `1px solid ${T.border}`,

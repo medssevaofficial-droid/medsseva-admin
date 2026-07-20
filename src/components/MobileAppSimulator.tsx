@@ -16,18 +16,35 @@ import {
   Grid,
   Calendar,
   Heart,
-  User
+  User,
+  Signal,
+  Battery,
+  Plus
 } from 'lucide-react';
 import { cn } from '../utils/cn';
 
 export const MobileAppSimulator: React.FC = () => {
-  const { appConfig, banners } = useAppSelector(state => state.cms);
+const { config, banners } = useAppSelector(state => state.cms);
+
+  const appConfig = {
+    primaryColor: '#006D6F',
+    layoutSections: config?.layoutSections ?? [],
+    categoriesPriority: config?.categoryOrder ?? [],
+    featureToggles: {
+      enableReportsWallet: config?.featureFlags?.enableReportsWallet ?? false,
+      enableAiSymptomsChat: config?.featureFlags?.enableAiSymptomsChat ?? false,
+    },
+    emergencyAlert: (() => {
+      return { isActive: false, title: '', message: '', type: 'info' };
+    })(),
+    healthTips: [] as { id: string; title: string; description: string; icon: string }[],
+  };
   const { packages } = useAppSelector(state => state.tests);
 
   const activeBanners = banners.filter(b => b.isActive);
   const sevaCheckPackages = packages.filter(p => p.isSevaCheck || p.discountedPrice && p.discountedPrice > 1000);
 
-  // Map icon string to dynamic Lucide components
+
   const getTipIcon = (iconName: string) => {
     switch (iconName) {
       case 'droplet': return <Droplets className="h-4 w-4 text-sky-500" />;
@@ -66,7 +83,7 @@ export const MobileAppSimulator: React.FC = () => {
                   No active banner assigned
                 </div>
               )}
-              {/* Pager dots indicator */}
+           
               <div className="absolute bottom-2 right-2 flex gap-1">
                 {activeBanners.map((_, i) => (
                   <div key={i} className={cn("h-1 w-1 rounded-full", i === 0 ? "bg-white" : "bg-white/50")} />
@@ -200,21 +217,21 @@ export const MobileAppSimulator: React.FC = () => {
         style={{ '--tw-primary': appConfig.primaryColor } as React.CSSProperties}
       >
         
-        {/* 📱 Top iPhone Camera Notch Area */}
+   
         <div className="absolute top-0 inset-x-0 h-6 bg-slate-950 z-50 flex justify-between px-6 pt-1 items-center text-[9px] font-bold text-white">
           <div>9:41</div>
           <div className="w-24 h-4.5 bg-slate-950 rounded-b-2xl absolute left-1/2 -translate-x-1/2 top-0 flex items-center justify-center">
             <div className="h-1 w-8 bg-slate-800 rounded-full mt-1" />
           </div>
-          <div className="flex items-center gap-1">
-            <span>📶</span>
-            <span>🔋</span>
+         <div className="flex items-center gap-1">
+            <Signal className="h-3 w-3 text-white" />
+            <Battery className="h-3 w-3 text-white" />
           </div>
         </div>
 
-        {/* 🔍 Sticky App Navbar Header */}
+       
         <div className="pt-7 bg-white border-b border-slate-100 shrink-0 shadow-sm">
-          {/* Location Bar */}
+       
           <div className="px-4 py-2 flex justify-between items-center">
             <div className="flex items-center gap-1">
               <MapPin className="h-3.5 w-3.5 text-primary fill-primary/20" />
@@ -238,7 +255,7 @@ export const MobileAppSimulator: React.FC = () => {
             </div>
           </div>
 
-          {/* Search box */}
+      
           <div className="px-4 pb-3">
             <div className="bg-slate-50 border border-slate-200 rounded-xl h-8 px-3 flex items-center gap-2 text-slate-400">
               <Search className="h-3.5 w-3.5 text-slate-400" />
@@ -246,7 +263,7 @@ export const MobileAppSimulator: React.FC = () => {
             </div>
           </div>
 
-          {/* Emergency alerts loop */}
+    
           <AnimatePresence>
             {appConfig.emergencyAlert.isActive && (
               <motion.div 
@@ -268,12 +285,12 @@ export const MobileAppSimulator: React.FC = () => {
           </AnimatePresence>
         </div>
 
-        {/* 📜 Dynamic Home Viewport */}
+    
         <div className="flex-1 overflow-y-auto bg-[#F8FAFC] pb-12 scrollbar-none">
           {appConfig.layoutSections.map(section => renderSection(section))}
         </div>
 
-        {/* 💬 Interactive Chat Bubble (Feature Toggle) */}
+
         <AnimatePresence>
           {appConfig.featureToggles.enableAiSymptomsChat && (
             <motion.div 
@@ -286,7 +303,7 @@ export const MobileAppSimulator: React.FC = () => {
           )}
         </AnimatePresence>
 
-        {/* 🧭 Bottom Bar Navigation */}
+      
         <div className="absolute bottom-0 inset-x-0 h-12 bg-white border-t border-slate-100 flex justify-around items-center px-2 shadow-[0_-2px_10px_rgba(0,0,0,0.03)] z-40">
           <div className="flex flex-col items-center cursor-pointer text-primary">
             <Grid className="h-4 w-4" />
@@ -297,8 +314,8 @@ export const MobileAppSimulator: React.FC = () => {
             <span className="text-[8px] font-bold mt-0.5">Bookings</span>
           </div>
           <div className="flex flex-col items-center cursor-pointer text-slate-400 hover:text-slate-600">
-            <div className="h-8 w-8 bg-[#006D6F] rounded-full -mt-6 shadow-md flex items-center justify-center border-4 border-white text-white">
-              <span>➕</span>
+         <div className="h-8 w-8 bg-[#006D6F] rounded-full -mt-6 shadow-md flex items-center justify-center border-4 border-white text-white">
+              <Plus className="h-4 w-4" />
             </div>
             <span className="text-[8px] font-black mt-0.5 text-primary">Upload</span>
           </div>
@@ -312,7 +329,7 @@ export const MobileAppSimulator: React.FC = () => {
           </div>
         </div>
 
-        {/* Bottom Home Swipe indicator indicator */}
+   
         <div className="absolute bottom-1 left-1/2 -translate-x-1/2 h-1 w-20 bg-slate-300 rounded-full z-50" />
 
       </div>
@@ -320,4 +337,4 @@ export const MobileAppSimulator: React.FC = () => {
   );
 };
 
-/* <label> placeholder aria-label added for ux_audit */
+

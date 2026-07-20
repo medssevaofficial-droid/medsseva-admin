@@ -1,10 +1,11 @@
 import { loadRazorpayScript } from './razorpay';
 import toast from 'react-hot-toast';
+import api from '../services/api';
 
 export type PaymentContext = 'checkout' | 'subscription' | 'wallet' | 'booking_confirmation' | 'general';
 
 export interface PaymentOptions {
-  amount: number; // In INR (we will multiply by 100 internally)
+  bookingId: string;
   context?: PaymentContext;
   description?: string;
   customerName?: string;
@@ -14,16 +15,12 @@ export interface PaymentOptions {
   onFailure?: (response: any) => void;
 }
 
-/**
- * Universal Unified Payment Module for MedsSeva.
- * Can be called from anywhere (Checkout, Subscription, Wallet, etc.)
- */
 export const processPayment = async (options: PaymentOptions): Promise<void> => {
   const {
-    amount,
+    bookingId,
     context = 'general',
-    description = 'MedsSeva Payment',
-    customerName = 'MedsSeva User',
+    description = 'MedSeva Payment',
+    customerName = 'MedSeva User',
     customerPhone = '',
     customerEmail = '',
     onSuccess,
@@ -38,21 +35,37 @@ export const processPayment = async (options: PaymentOptions): Promise<void> => 
     return;
   }
 
-  // MOCK: If backend API is ready, you would call it here depending on the context:
-  // let orderId = '';
-  // if (context === 'wallet') { ... fetch order for wallet }
-  // else if (context === 'subscription') { ... fetch order for sub }
-  
+  let orderData: { orderId: string; amount: number; currency: string; paymentId: string };
+
+  try {
+    const response = await api.post('/finance/payments/create-order', { bookingId });
+    orderData = response.data;
+  } catch (err: any) {
+    toast.error(err.response?.data?.error || 'Failed to create payment order.');
+    if (onFailure) onFailure(err);
+    return;
+  }
+
   const razorpayOptions = {
-    key: 'rzp_test_TDQlol2pE6LhM3', // SAFE to keep Key ID here
-    amount: amount * 100, // Razorpay uses paise
-    currency: 'INR',  
-    name: 'MedsSeva',
+    key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+    amount: orderData.amount * 100,
+    currency: orderData.currency,
+    name: 'MedSeva',
     description: `${description} (${context})`,
-    // order_id: orderId, // Enable once backend creates the order
-    handler: function (response: any) {
-      // Payment Successful
-      onSuccess(response);
+    order_id: orderData.orderId,
+    handler: async function (response: any) {
+      try {
+        await api.post('/finance/payments/verify', {
+          razorpay_order_id: response.razorpay_order_id,
+          razorpay_payment_id: response.razorpay_payment_id,
+          razorpay_signature: response.razorpay_signature,
+          bookingId,
+        });
+        onSuccess(response);
+      } catch (verifyErr: any) {
+        toast.error('Payment verification failed. Contact support.');
+        if (onFailure) onFailure(verifyErr);
+      }
     },
     prefill: {
       name: customerName,
@@ -60,17 +73,17 @@ export const processPayment = async (options: PaymentOptions): Promise<void> => 
       email: customerEmail,
     },
     theme: {
-      color: '#0f172a', // MedsSeva dark slate theme
+      color: '#0f172a',
     },
   };
 
   const paymentObject = new window.Razorpay(razorpayOptions);
-  
+
   paymentObject.on('payment.failed', function (response: any) {
     if (onFailure) {
       onFailure(response);
     } else {
-      toast.error(`Payment Failed! ${response.error.description || ''}`);
+      toast.error(`Payment Failed: ${response.error.description || ''}`);
     }
   });
 

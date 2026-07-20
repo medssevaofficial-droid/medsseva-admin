@@ -103,3 +103,61 @@ export const useToast = (): ToastContextValue => {
   if (!ctx) throw new Error('useToast must be used inside ToastProvider');
   return ctx;
 };
+
+interface ConfirmDialogProps {
+  open: boolean;
+  title: string;
+  description?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  danger?: boolean;
+}
+
+export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
+  open, title, description, confirmLabel = 'Confirm', cancelLabel = 'Cancel', onConfirm, onCancel, danger = false,
+}) => (
+  <AnimatePresence>
+    {open && (
+      <>
+        <motion.div
+          initial={{ opacity: 0 }} animate={{ opacity: 0.4 }} exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black z-[9998]"
+          onClick={onCancel}
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 16 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 16 }}
+          transition={{ duration: 0.18, ease: 'easeOut' }}
+          className="fixed z-[9999] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-card border border-border rounded-2xl shadow-2xl p-6"
+        >
+          <div className="flex items-start gap-3 mb-4">
+            <div className={`p-2 rounded-full ${danger ? 'bg-red-100' : 'bg-amber-100'}`}>
+              <AlertTriangle className={`h-5 w-5 ${danger ? 'text-red-600' : 'text-amber-600'}`} />
+            </div>
+            <div>
+              <div className="text-sm font-bold text-foreground">{title}</div>
+              {description && <div className="text-xs text-muted-foreground mt-1 leading-relaxed">{description}</div>}
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={onCancel}
+              className="px-4 py-2 text-xs font-bold border border-border rounded-lg hover:bg-muted transition-colors"
+            >
+              {cancelLabel}
+            </button>
+            <button
+              onClick={onConfirm}
+              className={`px-4 py-2 text-xs font-bold rounded-lg text-white transition-colors ${danger ? 'bg-red-600 hover:bg-red-700' : 'bg-primary hover:bg-primary/90'}`}
+            >
+              {confirmLabel}
+            </button>
+          </div>
+        </motion.div>
+      </>
+    )}
+  </AnimatePresence>
+);
