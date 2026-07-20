@@ -1,21 +1,23 @@
 import React, { useState, useMemo } from 'react';
 import { useAppSelector, useAppDispatch } from '@/redux/hooks';
-import { deleteTest, fetchTests, addTest, updateTest } from '@/redux/slices/testSlice';
+import { deleteTest, addTest, updateTest } from '@/redux/slices/testSlice';
+import { useTestsQuery } from '@/hooks/useAdminQueries';
 import { MedicalTest, TestCategory, TestParameter } from '@/types';
 import toast from 'react-hot-toast';
-import { 
-  Search, 
-  Plus, 
-  Filter, 
-  Edit3, 
-  Trash2, 
-  Check, 
-  X, 
-  AlertCircle, 
-  FlaskConical, 
-  Clock, 
+import {
+  Search,
+  Plus,
+  Filter,
+  Edit3,
+  Trash2,
+  Check,
+  X,
+  AlertCircle,
+  FlaskConical,
+  Clock,
   Info,
-  Zap
+  Zap,
+  PencilLine
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/utils/cn';
@@ -26,11 +28,7 @@ export const TestCatalogPage: React.FC = () => {
 const { tests, status, error } = useAppSelector(state => state.tests);
   const dispatch = useAppDispatch();
 
-React.useEffect(() => {
-    if (status === 'idle' || status === 'failed') {
-      dispatch(fetchTests());
-    }
-  }, [status, dispatch]);
+const { isLoading: testsLoading } = useTestsQuery();
 
   // Search and Filter States
   const [searchTerm, setSearchTerm] = useState('');
@@ -249,9 +247,8 @@ const backendPayload: any = {
     if (editingTest) {
       dispatch(updateTest({ id: editingTest.id, ...backendPayload }))
         .unwrap()
-        .then(() => {
+       .then(() => {
           toast.success(`${formName} specification updated successfully.`);
-          dispatch(fetchTests());
           setIsDrawerOpen(false);
         })
         .catch((err: any) => {
@@ -261,9 +258,8 @@ const backendPayload: any = {
     } else {
       dispatch(addTest(backendPayload))
         .unwrap()
-        .then(() => {
+      .then(() => {
           toast.success(`New clinical test ${formName} committed to catalog.`);
-          dispatch(fetchTests());
           setIsDrawerOpen(false);
         })
         .catch((err: any) => {
@@ -283,13 +279,13 @@ const backendPayload: any = {
   return (
     <div className="w-full flex flex-col h-full select-none relative">
       
-      {/* 🌐 View Header Area */}
+    
   {status === 'failed' && (
         <div className="mb-4 px-4 py-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm font-semibold">
           Failed to load tests: {error || 'Unknown error'}. Check that the backend is running and the database is seeded.
         </div>
       )}
-      {status === 'loading' && (
+  {(testsLoading && tests.length === 0) && (
         <div className="mb-4 px-4 py-3 rounded-xl bg-muted text-muted-foreground text-sm font-semibold">
           Loading tests...
         </div>
@@ -309,7 +305,7 @@ const backendPayload: any = {
         </button>
       </div>
 
-      {/* 🔍 Toolbar Actions Row */}
+     
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-card border border-border rounded-xl shadow-sm mb-6 flex-shrink-0">
         
         {/* Search Bar */}
@@ -373,7 +369,7 @@ const backendPayload: any = {
         </div>
       </div>
 
-      {/* 📊 Data Table Grid Pane */}
+    
       <div className="flex-1 bg-card border border-border rounded-2xl overflow-hidden shadow-sm flex flex-col min-h-[400px]">
         
         <div className="flex-1 overflow-y-auto custom-scrollbar">
@@ -513,7 +509,7 @@ const backendPayload: any = {
 
       </div>
 
-      {/* 📝 Premium Side Drawer Editor Overlay */}
+    
       <AnimatePresence>
         {isDrawerOpen && (
           <>
@@ -526,7 +522,7 @@ const backendPayload: any = {
               className="fixed inset-0 z-40 bg-black"
             />
             
-            {/* Right Slide-in Workspace Panel */}
+         
             <motion.div
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
@@ -753,7 +749,10 @@ const backendPayload: any = {
                 <div className="p-4 border border-border/60 rounded-xl bg-muted/10 space-y-3.5">
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-bold text-muted-foreground uppercase">
-                        {editingParamId ? '✏️ Editing Parameter' : '+ New Parameter'}
+                      <span className="flex items-center gap-1">
+  <PencilLine className="w-3 h-3" />
+  {editingParamId ? 'Editing Parameter' : 'New Parameter'}
+</span>
                       </span>
                       {editingParamId && (
                         <button type="button" onClick={resetParamForm} className="text-[10px] text-muted-foreground hover:text-foreground underline">

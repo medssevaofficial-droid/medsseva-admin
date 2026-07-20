@@ -1,13 +1,13 @@
 import React from 'react';
 import { useAppSelector } from '../redux/hooks';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Search, 
-  MapPin, 
-  Bell, 
-  ArrowRight, 
-  AlertTriangle, 
-  Sparkles, 
+import {
+  Search,
+  MapPin,
+  Bell,
+  ArrowRight,
+  AlertTriangle,
+  Sparkles,
   Droplets,
   Clock,
   MessageCircle,
@@ -19,7 +19,11 @@ import {
   User,
   Signal,
   Battery,
-  Plus
+  Plus,
+  Activity,
+  Candy,
+  Brain,
+  HeartPulse
 } from 'lucide-react';
 import { cn } from '../utils/cn';
 
@@ -107,9 +111,17 @@ const { config, banners } = useAppSelector(state => state.cms);
                   layoutId={`cat-${cat}`}
                   className="bg-white border border-slate-100 rounded-xl p-2 shadow-sm flex flex-col items-center text-center group cursor-pointer active:scale-95 transition-transform"
                 >
-                  <div className="h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center text-[14px] mb-1.5 border border-slate-100">
-                    {idx === 0 ? '🩸' : idx === 1 ? '🍬' : idx === 2 ? '🦋' : '🫀'}
-                  </div>
+                  <div className="h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center mb-1.5 border border-slate-100">
+  {idx === 0 ? (
+    <Droplets className="h-4 w-4 text-red-500" />
+  ) : idx === 1 ? (
+    <Candy className="h-4 w-4 text-amber-500" />
+  ) : idx === 2 ? (
+    <Brain className="h-4 w-4 text-violet-500" />
+  ) : (
+    <HeartPulse className="h-4 w-4 text-rose-500" />
+  )}
+</div>
                   <span className="text-[9px] font-black text-slate-700 leading-tight truncate w-full">{cat}</span>
                 </motion.div>
               ))}

@@ -5,17 +5,17 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { store, persistor } from '../redux/store';
 
-// Initializing the React Query client
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
+      staleTime: 7 * 60 * 1000,
+      gcTime: 15 * 60 * 1000,
       refetchOnWindowFocus: false,
-      retry: 1,
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      refetchOnMount: false,
+      retry: 2,
     },
   },
 });
-
 interface ProvidersProps {
   children: ReactNode;
 }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useCouponsQuery, useCouponAnalyticsQuery } from '@/hooks/useAdminQueries';
 import { useAppSelector, useAppDispatch } from '../redux/hooks';
 import {
   fetchCoupons,
@@ -39,10 +40,8 @@ const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [startsAt, setStartsAt] = useState('');
   const [isFirstOrderOnly, setIsFirstOrderOnly] = useState(false);
 
-  useEffect(() => {
-    dispatch(fetchCoupons());
-    dispatch(fetchCouponAnalytics());
-  }, [dispatch]);
+ useCouponsQuery();
+  useCouponAnalyticsQuery();
 
   useEffect(() => {
     if (error) toastError(error);
@@ -116,8 +115,16 @@ const handleDelete = async () => {
           <Plus className="h-4 w-4" /> Launch Coupon
         </button>
       </div>
-
-      {analytics && (
+{loading && !analytics ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-pulse">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="bg-card border border-border rounded-xl p-4 shadow-sm space-y-2">
+              <div className="h-2.5 bg-muted rounded w-24" />
+              <div className="h-7 bg-muted rounded w-16" />
+            </div>
+          ))}
+        </div>
+      ) : analytics && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: 'Total Coupons', value: analytics.total },
@@ -133,10 +140,35 @@ const handleDelete = async () => {
         </div>
       )}
 
-      {loading ? (
-        <div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
-          <Loader2 className="h-5 w-5 animate-spin" />
-          <span className="text-sm">Loading coupons...</span>
+  {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <div key={i} className="bg-card border-2 border-dashed border-border rounded-2xl p-6 shadow-sm flex flex-col justify-between relative overflow-hidden">
+              <div className="absolute -left-3 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-background border border-border" />
+              <div className="absolute -right-3 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-background border border-border" />
+              <div className="space-y-4">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-2">
+                    <div className="h-7 bg-muted rounded w-32" />
+                    <div className="h-3 bg-muted rounded w-24" />
+                    <div className="h-2.5 bg-muted rounded w-28 mt-1" />
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="h-7 w-7 bg-muted rounded" />
+                    <div className="h-8 w-8 bg-muted rounded" />
+                  </div>
+                </div>
+                <div className="border-t border-dashed border-border pt-4 space-y-2.5">
+                  {[1, 2, 3].map(j => (
+                    <div key={j} className="flex justify-between">
+                      <div className="h-3 bg-muted rounded w-20" />
+                      <div className="h-3 bg-muted rounded w-16" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

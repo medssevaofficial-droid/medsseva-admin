@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
+import { useReportsQuery, useBookingsForReportQuery } from '@/hooks/useAdminQueries';
 import ReactDOM from 'react-dom';
 import { useAppSelector, useAppDispatch } from '../redux/hooks';
 import {
@@ -47,10 +48,8 @@ const [showFinalizeConfirm, setShowFinalizeConfirm] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
   const [sending, setSending] = useState(false);
 
-  useEffect(() => {
-    dispatch(fetchAllReports());
-    dispatch(fetchBookingsForReport());
-  }, [dispatch]);
+useReportsQuery();
+  useBookingsForReportQuery();
 
 const buildBranchAndDoctor = useCallback(() => {
     const rb = selectedReport?.reportBranch || null;
@@ -303,9 +302,20 @@ const handleFinalize = async () => {
             <h3 className="font-bold text-xs tracking-wider uppercase text-amber-600 flex items-center gap-1.5">
               <Clock className="h-3.5 w-3.5" /> Pending ({draftReports.length})
             </h3>
-            <div className="space-y-2">
+           <div className="space-y-2">
               {loading ? (
-                <div className="text-xs text-muted-foreground p-4">Loading...</div>
+                <>
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="w-full p-4 border border-border rounded-xl bg-card animate-pulse flex justify-between items-center">
+                      <div className="space-y-2 flex-1">
+                        <div className="h-3.5 bg-muted rounded w-32" />
+                        <div className="h-2.5 bg-muted rounded w-20" />
+                        <div className="h-4 bg-muted rounded w-16 mt-2" />
+                      </div>
+                      <div className="h-4 w-4 bg-muted rounded" />
+                    </div>
+                  ))}
+                </>
               ) : draftReports.map((report: any) => (
                 <button
                   key={report.id}
@@ -402,7 +412,7 @@ const handleFinalize = async () => {
                         onClick={() => setShowResendConfirm(true)}
                         className="flex items-center gap-1 text-[11px] text-emerald-700 font-bold bg-emerald-50 border border-emerald-100 hover:bg-emerald-100 px-2 py-1 rounded transition-colors"
                       >
-                        <ShieldCheck className="h-3.5 w-3.5" /> ✓ Sent to Recipient
+                        <ShieldCheck className="h-3.5 w-3.5" />Sent to Recipient
                       </button>
                     )}
                   </div>
@@ -511,6 +521,58 @@ const handleFinalize = async () => {
                   )}
                 </div>
               </motion.div>
+        ) : loading ? (
+              <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden animate-pulse">
+                <div className="p-4 bg-muted/50 border-b border-border flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-4 bg-muted rounded" />
+                    <div className="h-4 bg-muted rounded w-28" />
+                    <div className="h-4 bg-muted rounded-full w-16" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-7 bg-muted rounded w-28" />
+                    <div className="h-7 bg-muted rounded w-28" />
+                  </div>
+                </div>
+                <div className="p-6 space-y-6">
+                  <div className="grid grid-cols-2 gap-4 border border-slate-200 p-4 bg-slate-50 rounded-lg">
+                    {[1, 2].map(col => (
+                      <div key={col} className="space-y-3">
+                        {[1, 2, 3, 4].map(i => (
+                          <div key={i} className="flex justify-between gap-4">
+                            <div className="h-3 bg-muted rounded w-16" />
+                            <div className="h-3 bg-muted rounded w-24" />
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="space-y-3">
+                    <div className="h-8 bg-muted rounded w-full" />
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-slate-200">
+                          {[1, 2, 3, 4].map(i => (
+                            <th key={i} className="py-2">
+                              <div className="h-2.5 bg-muted rounded w-16 mx-auto" />
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {[1, 2, 3, 4, 5].map(i => (
+                          <tr key={i}>
+                            <td className="py-2.5"><div className="h-3 bg-muted rounded w-32" /></td>
+                            <td className="py-2.5 text-center"><div className="h-3 bg-muted rounded w-12 mx-auto" /></td>
+                            <td className="py-2.5 text-center"><div className="h-3 bg-muted rounded w-16 mx-auto" /></td>
+                            <td className="py-2.5 text-center"><div className="h-3 bg-muted rounded w-10 mx-auto" /></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
             ) : (
               <div className="bg-card border border-dashed border-border rounded-2xl h-[450px] flex flex-col items-center justify-center text-center p-8 shadow-inner">
                 <div className="h-12 w-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mb-4">

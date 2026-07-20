@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useUsersQuery, usePartnersQuery, useAdminUsersQuery } from '@/hooks/useAdminQueries';
 import { User, UserRole } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -25,7 +26,13 @@ const ROLE_LABELS: Record<UserRole, string> = {
   'doctor': 'Authorized Doctor',
   'lab_staff': 'Laboratory Staff',
   'phlebotomist': 'Field Collector',
-  'technician': 'Lab Scientist'
+  'technician': 'Lab Scientist',
+  'SUPER_ADMIN': 'Super Admin',
+  'ADMIN': 'Admin',
+  'FRANCHISE': 'Franchise',
+  'LAB_DEPARTMENT': 'Lab Department',
+  'EXECUTIVE': 'Executive',
+  'PATHOLOGIST': 'Pathologist',
 };
 
 const ROLE_THEMES: Record<UserRole, { bg: string; text: string; border: string }> = {
@@ -34,16 +41,47 @@ const ROLE_THEMES: Record<UserRole, { bg: string; text: string; border: string }
   'doctor': { bg: 'bg-primary/10', text: 'text-primary', border: 'border-primary/20' },
   'lab_staff': { bg: 'bg-sky-50', text: 'text-sky-800', border: 'border-sky-200' },
   'phlebotomist': { bg: 'bg-indigo-50', text: 'text-indigo-800', border: 'border-indigo-200' },
-  'technician': { bg: 'bg-emerald-50', text: 'text-emerald-800', border: 'border-emerald-200' }
+  'technician': { bg: 'bg-emerald-50', text: 'text-emerald-800', border: 'border-emerald-200' },
+  'SUPER_ADMIN': { bg: 'bg-slate-100', text: 'text-slate-800', border: 'border-slate-200' },
+  'ADMIN': { bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200' },
+  'FRANCHISE': { bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-200' },
+  'LAB_DEPARTMENT': { bg: 'bg-sky-50', text: 'text-sky-800', border: 'border-sky-200' },
+  'EXECUTIVE': { bg: 'bg-indigo-50', text: 'text-indigo-800', border: 'border-indigo-200' },
+  'PATHOLOGIST': { bg: 'bg-emerald-50', text: 'text-emerald-800', border: 'border-emerald-200' },
 };
 
 export const UsersPage: React.FC = () => {
+const { data: adminUsersData } = useAdminUsersQuery();
+  const { data: usersData } = useUsersQuery();
+  const { data: partnersData } = usePartnersQuery();
+
+  const [pageLoading, setPageLoading] = useState(!adminUsersData && !usersData && !partnersData);
   const [search, setSearch] = useState('');
   const [activeRole, setActiveRole] = useState<string>('All');
-const [backendPatients, setBackendPatients] = useState<User[]>([]);
+  const [backendPatients, setBackendPatients] = useState<User[]>([]);
   const [adminUsers, setAdminUsers] = useState<User[]>([]);
   const [partners, setPartners] = useState<User[]>([]);
   const [roleLabels, setRoleLabels] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (adminUsersData) {
+      const labels: Record<string, string> = {};
+      const mapped = adminUsersData.map((au: any) => {
+        labels[au.role.slug] = au.role.name;
+        return { id: au.user.id, name: au.user.name, email: au.user.email, phone: au.user.mobile && !au.user.mobile.startsWith('adm_') ? au.user.mobile : '', role: au.role.slug as any, status: (au.isActive ? 'active' : 'inactive') as 'active' | 'inactive' };
+      });
+      setAdminUsers(mapped);
+      setRoleLabels(labels);
+    }
+  }, [adminUsersData]);
+
+  useEffect(() => {
+    if (usersData) setBackendPatients(usersData);
+  }, [usersData]);
+
+  useEffect(() => {
+    if (partnersData) setPartners(partnersData);
+  }, [partnersData]);
 
   useEffect(() => {
     const loadAdminUsers = async () => {
@@ -53,13 +91,13 @@ const [backendPatients, setBackendPatients] = useState<User[]>([]);
           const labels: Record<string, string> = {};
           const mapped = data.map((au: any) => {
             labels[au.role.slug] = au.role.name;
-      return {
+            return {
               id: au.user.id,
               name: au.user.name,
               email: au.user.email,
               phone: au.user.mobile && !au.user.mobile.startsWith('adm_') ? au.user.mobile : '',
-              role: au.role.slug as any,
-              status: au.isActive ? 'active' : 'inactive' as const,
+            role: au.role.slug as any,
+              status: (au.isActive ? 'active' : 'inactive') as 'active' | 'inactive',
             };
           });
           setAdminUsers(mapped);
@@ -69,9 +107,8 @@ const [backendPatients, setBackendPatients] = useState<User[]>([]);
         console.error('Error fetching admin users:', error);
       }
     };
-    loadAdminUsers();
 
-  const loadPartners = async () => {
+    const loadPartners = async () => {
       try {
         const data = await testService.getPartners();
         if (data && Array.isArray(data)) {
@@ -80,8 +117,8 @@ const [backendPatients, setBackendPatients] = useState<User[]>([]);
             name: p.user.name,
             email: p.user.email || `${p.user.mobile}@medsseva.com`,
             phone: p.user.mobile,
-            role: 'PATHOLOGY_PARTNER' as any,
-            status: p.approvalStatus === 'APPROVED' ? 'active' : 'inactive' as const,
+           role: 'PATHOLOGY_PARTNER' as any,
+            status: (p.approvalStatus === 'APPROVED' ? 'active' : 'inactive') as 'active' | 'inactive',
             labName: p.labName,
             partnerRole: p.role,
             approvalStatus: p.approvalStatus,
@@ -92,7 +129,6 @@ const [backendPatients, setBackendPatients] = useState<User[]>([]);
         console.error('Error fetching partners:', error);
       }
     };
-    loadPartners();
 
     const loadBackendUsers = async () => {
       try {
@@ -109,7 +145,7 @@ const [backendPatients, setBackendPatients] = useState<User[]>([]);
               status: 'active' as const,
               avatarUrl: u.avatarUrl || undefined,
               uhid: u.uhid,
-              familyMembers: u.familyMembers
+              familyMembers: u.familyMembers,
             }));
           setBackendPatients(mapped);
         }
@@ -117,9 +153,11 @@ const [backendPatients, setBackendPatients] = useState<User[]>([]);
         console.error('Error fetching patients from backend:', error);
       }
     };
-    loadBackendUsers();
-  }, []);
 
+    Promise.all([loadAdminUsers(), loadPartners(), loadBackendUsers()]).finally(() =>
+      setPageLoading(false)
+    );
+  }, []);
   // Drawer States for Registering Operators
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
@@ -140,6 +178,7 @@ const handleRegisterUser = (e: React.FormEvent) => {
   };
   // Adding both dynamic backend patients and mock Patients
 const displayList = ([...adminUsers, ...backendPatients, ...partners] as User[]).filter(user => {
+    if (!user || !user.name) return false;
     const matchesSearch = user.name.toLowerCase().includes(search.toLowerCase()) || 
                           (user.email && user.email.toLowerCase().includes(search.toLowerCase())) ||
                           (user.phone && user.phone.includes(search));
@@ -180,7 +219,7 @@ const displayList = ([...adminUsers, ...backendPatients, ...partners] as User[])
       setAdminUsers(prev => prev.map(u =>
         u.id === userId ? { ...u, status: action === 'suspend' ? 'inactive' : 'active' } : u
       ));
-      toast.success(action === 'suspend' ? '🔒 Credentials suspended successfully' : '✅ User reactivated successfully');
+      toast.success(action === 'suspend' ? 'Credentials suspended successfully' : 'User reactivated successfully');
       setConfirmModal({ isOpen: false, userId: '', userName: '', action: 'suspend' });
     } catch {
       toast.error('Failed to update user status');
@@ -189,6 +228,54 @@ const displayList = ([...adminUsers, ...backendPatients, ...partners] as User[])
     }
   };
 const distinctRoles = ['All', ...Object.keys(roleLabels), 'Patient', 'PATHOLOGY_PARTNER'];
+
+if (pageLoading) {
+    return (
+      <div className="space-y-6 pb-10 animate-pulse">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="h-7 bg-muted rounded w-64" />
+            <div className="h-4 bg-muted rounded w-96" />
+          </div>
+          <div className="h-10 bg-muted rounded-xl w-36" />
+        </div>
+
+        <div className="flex items-center gap-1.5 border-b border-border pb-1">
+          {[1, 2, 3, 4, 5].map(i => (
+            <div key={i} className="h-8 bg-muted rounded-lg w-24" />
+          ))}
+        </div>
+
+        <div className="h-9 bg-muted rounded-lg w-80" />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <div key={i} className="bg-card border border-border rounded-xl p-5 shadow-sm flex flex-col justify-between space-y-4">
+              <div className="space-y-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-muted shrink-0" />
+                    <div className="space-y-1.5">
+                      <div className="h-3.5 bg-muted rounded w-28" />
+                      <div className="h-2.5 bg-muted rounded w-20" />
+                    </div>
+                  </div>
+                  <div className="h-5 bg-muted rounded w-16" />
+                </div>
+                <div className="space-y-2">
+                  <div className="h-3 bg-muted rounded w-full" />
+                  <div className="h-3 bg-muted rounded w-3/4" />
+                </div>
+              </div>
+              <div className="flex justify-end pt-3 border-t border-border">
+                <div className="h-7 bg-muted rounded-lg w-32" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-10">
@@ -279,7 +366,7 @@ const distinctRoles = ['All', ...Object.keys(roleLabels), 'Patient', 'PATHOLOGY_
                     "text-[9px] font-black px-2 py-0.5 border rounded uppercase tracking-wide",
                     theme.bg, theme.text, theme.border
                   )}>
-                  {isRealPatient ? 'Patient' : user.role === 'PATHOLOGY_PARTNER' ? 'Pathology Partner' : ROLE_LABELS[user.role as UserRole] || user.role}
+                {isRealPatient ? 'Patient' : (user.role as string) === 'PATHOLOGY_PARTNER' ? 'Pathology Partner' : ROLE_LABELS[user.role as UserRole] || user.role}
                   </span>
                 </div>
 
@@ -356,7 +443,7 @@ const distinctRoles = ['All', ...Object.keys(roleLabels), 'Patient', 'PATHOLOGY_
         })}
       </div>
 
-  {/* ⚠️ Suspend / Reactivate Confirmation Modal */}
+
       <AnimatePresence>
         {confirmModal.isOpen && (
           <>
@@ -449,11 +536,11 @@ const distinctRoles = ['All', ...Object.keys(roleLabels), 'Patient', 'PATHOLOGY_
         )}
       </AnimatePresence>
 
-      {/* 📝 Administrative Slide Drawer Overlay */}
+   
       <AnimatePresence>
         {isDrawerOpen && (
           <>
-            {/* Dark Backdrop Overlay */}
+
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.5 }}
@@ -462,7 +549,7 @@ const distinctRoles = ['All', ...Object.keys(roleLabels), 'Patient', 'PATHOLOGY_
               className="fixed inset-0 z-40 bg-black"
             />
             
-            {/* Right Slide-in Register Panel */}
+   
             <motion.div
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
@@ -470,7 +557,7 @@ const distinctRoles = ['All', ...Object.keys(roleLabels), 'Patient', 'PATHOLOGY_
               transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
               className="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-card border-l border-border shadow-2xl flex flex-col h-full"
             >
-              {/* Drawer Top Header */}
+            
               <div className="h-16 px-6 border-b border-border flex items-center justify-between bg-gradient-to-r from-primary/5 to-transparent flex-shrink-0">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-sm">
@@ -486,10 +573,10 @@ const distinctRoles = ['All', ...Object.keys(roleLabels), 'Patient', 'PATHOLOGY_
                 </button>
               </div>
 
-              {/* Scrollable Registration Form */}
+             
               <form id="registerUserForm" onSubmit={handleRegisterUser} className="flex-1 overflow-y-auto p-6 space-y-5 custom-scrollbar">
                 
-                {/* Name */}
+             
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-foreground">Operator Full Name <span className="text-destructive">*</span></label>
                   <input 
@@ -505,7 +592,7 @@ const distinctRoles = ['All', ...Object.keys(roleLabels), 'Patient', 'PATHOLOGY_
                   />
                 </div>
 
-                {/* Contact Matrix */}
+         
                 <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-foreground">Registered Email <span className="text-destructive">*</span></label>
@@ -538,7 +625,7 @@ const distinctRoles = ['All', ...Object.keys(roleLabels), 'Patient', 'PATHOLOGY_
                   </div>
                 </div>
 
-                {/* Role Matrix Selection */}
+     
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-foreground">Corporate Access Role</label>
                   <select
@@ -555,7 +642,7 @@ const distinctRoles = ['All', ...Object.keys(roleLabels), 'Patient', 'PATHOLOGY_
                   </select>
                 </div>
 
-                {/* Franchise ID (Optional Condition) */}
+            
                 {(formRole === 'franchise_admin' || formRole === 'phlebotomist') && (
                   <motion.div 
                     initial={{ opacity: 0, height: 0 }} 
@@ -576,7 +663,7 @@ const distinctRoles = ['All', ...Object.keys(roleLabels), 'Patient', 'PATHOLOGY_
 
               </form>
 
-              {/* Drawer Sticky Footer */}
+         
               <div className="h-16 px-6 border-t border-border bg-card flex items-center justify-end gap-3 flex-shrink-0">
                 <button
                   type="button"

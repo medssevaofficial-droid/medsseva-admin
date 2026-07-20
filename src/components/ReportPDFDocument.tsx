@@ -373,19 +373,19 @@ export const ReportPDFDocument: React.FC<ReportPDFDocumentProps> = ({
           )}
           {report.technicianRemarks && (
             <div style={{ border: `1px solid ${T.border}`, borderRadius: '5px', padding: '8px 10px', background: T.slate50 }}>
-              <div style={{ fontSize: '8px', fontWeight: 900, color: T.teal, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '4px' }}>⚗ Technician Remarks</div>
+              <div style={{ fontSize: '8px', fontWeight: 900, color: T.teal, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '4px' }}>Technician Remarks</div>
               <div style={{ fontSize: '9px', lineHeight: '1.6', color: T.slate600 }}>{report.technicianRemarks}</div>
             </div>
           )}
           {report.doctorRemarks && (
             <div style={{ border: `1px solid ${T.border}`, borderRadius: '5px', padding: '8px 10px', background: T.slate50, gridColumn: report.clinicalNotes && report.technicianRemarks ? '1 / -1' : 'auto' }}>
-              <div style={{ fontSize: '8px', fontWeight: 900, color: T.teal, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '4px' }}>✎ Doctor Remarks</div>
+              <div style={{ fontSize: '8px', fontWeight: 900, color: T.teal, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '4px' }}>Doctor Remarks</div>
               <div style={{ fontSize: '9px', lineHeight: '1.6', color: T.slate700 }}>{report.doctorRemarks}</div>
             </div>
           )}
           {report.doctorInterpretation && (
             <div style={{ border: `1px solid ${T.border}`, borderRadius: '5px', padding: '8px 10px', background: T.slate50, gridColumn: '1 / -1' }}>
-              <div style={{ fontSize: '8px', fontWeight: 900, color: T.teal, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '4px' }}>⊕ Doctor Interpretation</div>
+              <div style={{ fontSize: '8px', fontWeight: 900, color: T.teal, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '4px' }}>Doctor Interpretation</div>
               <div style={{ fontSize: '9px', lineHeight: '1.6', color: T.slate700 }}>{report.doctorInterpretation}</div>
             </div>
           )}

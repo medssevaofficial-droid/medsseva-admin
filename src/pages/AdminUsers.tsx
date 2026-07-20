@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useAdminUsersQuery, useRolesQuery, useAllPermissionsQuery } from '@/hooks/useAdminQueries';
+import { useQueryClient } from '@tanstack/react-query';
 import { adminUserService, rbacService } from '@/services/api';
 import { AdminRole, Permission } from '@/types/rbac';
 import {
@@ -41,7 +43,7 @@ const MODULE_PERMISSIONS: { module: string; label: string; actions: string[] }[]
 export const AdminUsersPage: React.FC = () => {
   const [adminUsers, setAdminUsers] = useState<AdminUserRecord[]>([]);
   const [roles, setRoles] = useState<AdminRole[]>([]);
-  const [loading, setLoading] = useState(true);
+ 
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<AdminUserRecord | null>(null);
   const [saving, setSaving] = useState(false);
@@ -58,26 +60,17 @@ const [formName, setFormName] = useState('');
   const [isCustomRole, setIsCustomRole] = useState(false);
   const [customRoleName, setCustomRoleName] = useState('');
 
-  useEffect(() => { loadData(); }, []);
+const queryClient = useQueryClient();
+  const { data: adminUsersData, isLoading: adminUsersLoading } = useAdminUsersQuery();
+  const { data: rolesData, isLoading: rolesLoading } = useRolesQuery();
+  const { data: permsData, isLoading: permsLoading } = useAllPermissionsQuery();
+  const loading = (adminUsersLoading && !adminUsers.length) || (rolesLoading && !roles.length);
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const [users, roleList, perms] = await Promise.all([
-        adminUserService.getAdminUsers(),
-        rbacService.getRoles(),
-        rbacService.getAllPermissions(),
-      ]);
-      setAdminUsers(users);
-      setRoles(roleList.filter((r: AdminRole) => r.slug !== 'super_admin'));
-      setAllPermissions(perms);
-    } catch (e) {
-      toast.error('Failed to load data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  useEffect(() => {
+    if (adminUsersData) setAdminUsers(adminUsersData);
+    if (rolesData) setRoles(rolesData.filter((r: AdminRole) => r.slug !== 'super_admin'));
+    if (permsData) setAllPermissions(permsData);
+  }, [adminUsersData, rolesData, permsData]);
 const openCreate = () => {
     setEditing(null);
     setFormName(''); setFormEmail(''); setFormMobile(''); setFormPassword('');
@@ -194,8 +187,8 @@ if (!formName || !formEmail || (!editing && !formPassword)) {
         await adminUserService.createAdminUser(payload);
         toast.success('User created');
       }
-      setModalOpen(false);
-      loadData();
+  setModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
     } catch (e: any) {
       toast.error(e.response?.data?.error || 'Failed to save');
     } finally {
@@ -205,8 +198,8 @@ if (!formName || !formEmail || (!editing && !formPassword)) {
   const handleToggleActive = async (u: AdminUserRecord) => {
     try {
       await adminUserService.updateAdminUser(u.id, { isActive: !u.isActive });
-      toast.success(u.isActive ? 'User deactivated' : 'User activated');
-      loadData();
+     toast.success(u.isActive ? 'User deactivated' : 'User activated');
+      queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
     } catch {
       toast.error('Failed to update status');
     }
@@ -216,8 +209,8 @@ if (!formName || !formEmail || (!editing && !formPassword)) {
     if (!confirm(`Delete user ${u.user.name}? This cannot be undone.`)) return;
     try {
       await adminUserService.deleteAdminUser(u.id);
-      toast.success('User deleted');
-      loadData();
+     toast.success('User deleted');
+      queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
     } catch (e: any) {
       toast.error(e.response?.data?.error || 'Failed to delete');
     }
@@ -243,9 +236,46 @@ if (!formName || !formEmail || (!editing && !formPassword)) {
         </button>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center h-40 items-center">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+    {loading ? (
+        <div className="bg-card border border-border rounded-2xl overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              <tr>
+                <th className="px-5 py-3.5 text-left">User</th>
+                <th className="px-5 py-3.5 text-left">Email</th>
+                <th className="px-5 py-3.5 text-left">Role</th>
+                <th className="px-5 py-3.5 text-left">Status</th>
+                <th className="px-5 py-3.5 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/50">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <tr key={i} className="animate-pulse">
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-muted" />
+                      <div className="h-3.5 w-28 bg-muted rounded-md" />
+                    </div>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <div className="h-3.5 w-40 bg-muted rounded-md" />
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <div className="h-5 w-20 bg-muted rounded-full" />
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <div className="h-4 w-14 bg-muted rounded-md" />
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center justify-end gap-2">
+                      <div className="w-6 h-6 bg-muted rounded-lg" />
+                      <div className="w-6 h-6 bg-muted rounded-lg" />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       ) : (
         <div className="bg-card border border-border rounded-2xl overflow-hidden">

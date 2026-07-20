@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { useAppSelector, useAppDispatch } from '@/redux/hooks';
-import { fetchBookings } from '@/redux/slices/bookingSlice';
+import React from 'react';
+import { useAppSelector } from '@/redux/hooks';
+import { useBookingsQuery } from '@/hooks/useAdminQueries';
 import { 
   TrendingUp, 
   Calendar, 
@@ -17,21 +17,10 @@ import { motion } from 'framer-motion';
 import { cn } from '@/utils/cn';
 
 export const DashboardPage: React.FC = () => {
-  const { user, currentCityId, currentBranchId } = useAppSelector(state => state.auth);
+const { user, currentCityId, currentBranchId } = useAppSelector(state => state.auth);
   const { bookings } = useAppSelector(state => state.bookings);
-  const dispatch = useAppDispatch();
-
-  useEffect(() => {
-    dispatch(fetchBookings());
-  }, [dispatch]);
-
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    // Simulate data loading skeleton cycle
-    const timer = setTimeout(() => setIsLoading(false), 800);
-    return () => clearTimeout(timer);
-  }, [user?.role]); // Reload skeleton when switching roles to simulate live queries
+  const { isLoading: bookingsLoading } = useBookingsQuery();
+  const isLoading = bookingsLoading && bookings.length === 0;
 
   // Dynamic Filtering based on selected city/branch operational contexts
   const filteredBookings = bookings.filter(b => {

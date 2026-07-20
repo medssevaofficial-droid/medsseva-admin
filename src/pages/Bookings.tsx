@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { useAppSelector, useAppDispatch } from '../redux/hooks';
-import { updateBookingStatus, assignPersonnel, assignPartnerLocal, fetchBookings, updateBookingStatusAsync } from '../redux/slices/bookingSlice';
+import { updateBookingStatus, assignPersonnel, assignPartnerLocal, updateBookingStatusAsync } from '../redux/slices/bookingSlice';
+import { useBookingsQuery } from '@/hooks/useAdminQueries';
 import { Booking, BookingStatus } from '../types';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Search, 
-  Calendar, 
-  Clock, 
-  MapPin, 
-  Phone, 
+import {
+  Search,
+  Calendar,
+  Clock,
+  MapPin,
+  Phone,
   User as UserIcon,
   Activity,
   X,
@@ -22,7 +23,8 @@ import {
   Mail,
   Send,
   Home,
-  Building2
+  Building2,
+  Star
 } from 'lucide-react';
 import { cn } from '../utils/cn';
 import toast from 'react-hot-toast';
@@ -54,9 +56,11 @@ export const BookingsPage: React.FC = () => {
   const reports = useAppSelector(state => state.reports.reports);
   const allTests = useAppSelector(state => state.tests.tests);
   const currentUser = useAppSelector(state => state.auth.user);
-  const currentCityId = useAppSelector(state => state.auth.currentCityId);
+const currentCityId = useAppSelector(state => state.auth.currentCityId);
   const currentBranchId = useAppSelector(state => state.auth.currentBranchId);
-  
+  const { bookings: storeBookings } = useAppSelector(state => state.bookings);
+  const { isLoading: bookingsQueryLoading } = useBookingsQuery();
+  const [pageLoading, setPageLoading] = useState(storeBookings.length === 0);
   const [search, setSearch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -65,20 +69,25 @@ export const BookingsPage: React.FC = () => {
 const [executives, setExecutives] = useState<any[]>([]);
   const [availablePartners, setAvailablePartners] = useState<any[]>([]);
   const [isAssigningPartner, setIsAssigningPartner] = useState(false);
-  const [isUpdatingPayment, setIsUpdatingPayment] = useState(false);
+const [isUpdatingPayment, setIsUpdatingPayment] = useState(false);
+const [isLabActioning, setIsLabActioning] = useState(false);
+  const [showRejectInput, setShowRejectInput] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+const [isLabStatusUpdating, setIsLabStatusUpdating] = useState(false);
+  const [isGeneratingQR, setIsGeneratingQR] = useState(false);
+  const [paymentLinkUrl, setPaymentLinkUrl] = useState<string | null>(null);
+  const [isPollingPayment, setIsPollingPayment] = useState(false);
 
-React.useEffect(() => {
-    dispatch(fetchBookings());
-    testService.getExecutives().then(setExecutives).catch(() => {});
-    testService.getAvailablePartners().then(setAvailablePartners).catch(() => {});
+  React.useEffect(() => {
+    Promise.all([
+     testService.getExecutives().then(setExecutives).catch(() => {}),
+      testService.getAvailablePartners().then(setAvailablePartners).catch(() => {}),
+    ]).finally(() => setPageLoading(false));
+  }, []);
 
- 
-    const interval = setInterval(() => {
-      dispatch(fetchBookings());
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [dispatch]);
-
+  React.useEffect(() => {
+    if (!bookingsQueryLoading) setPageLoading(false);
+  }, [bookingsQueryLoading]);
   const activeReport = reports.find(r => r.bookingId === selectedBooking?.id) || (selectedBooking ? {
     id: `fallback-rep-${selectedBooking.id}`,
     bookingId: selectedBooking.id,
@@ -205,21 +214,100 @@ const handleAssign = async (userId: string) => {
     }
     setIsAssigningPartner(false);
   };
-  const handleMarkPayment = async (bookingId: string, paymentStatus: 'SUCCESS', paymentMode: string) => {
+const handleAcceptLabBooking = async () => {
+    if (!selectedBooking) return;
+    setIsLabActioning(true);
+    try {
+      await testService.acceptLabBooking(selectedBooking.id);
+      dispatch(updateBookingStatusAsync({ id: selectedBooking.id, status: 'Confirmed' }));
+      setSelectedBooking({ ...selectedBooking, status: 'Confirmed' });
+      toast.success('Lab visit booking accepted.');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || 'Failed to accept booking.');
+    }
+    setIsLabActioning(false);
+  };
+
+const handleUpdateLabStatus = async (status: string) => {
+    if (!selectedBooking) return;
+    setIsLabStatusUpdating(true);
+    try {
+      await testService.updateLabStatus(selectedBooking.id, status);
+      const statusMap: Record<string, any> = {
+        SAMPLE_COLLECTED: 'Collected',
+        PROCESSING: 'Processing',
+        REPORT_READY: 'Approved',
+        COMPLETED: 'Completed',
+      };
+      const localStatus = statusMap[status] || selectedBooking.status;
+      dispatch(updateBookingStatusAsync({ id: selectedBooking.id, status: localStatus }));
+      setSelectedBooking((prev: any) => prev ? { ...prev, status: localStatus, rawStatus: status } : prev);
+      toast.success(`Status updated to ${status.replace(/_/g, ' ')}`);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || 'Failed to update status.');
+    }
+    setIsLabStatusUpdating(false);
+  };
+  const handleRejectLabBooking = async () => {
+    if (!selectedBooking || !rejectReason.trim()) {
+      toast.error('Please enter a rejection reason.');
+      return;
+    }
+    setIsLabActioning(true);
+    try {
+      await testService.rejectLabBooking(selectedBooking.id, rejectReason.trim());
+      dispatch(updateBookingStatusAsync({ id: selectedBooking.id, status: 'Cancelled' }));
+      setSelectedBooking({ ...selectedBooking, status: 'Cancelled' });
+      setShowRejectInput(false);
+      setRejectReason('');
+      toast.success('Lab visit booking rejected.');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || 'Failed to reject booking.');
+    }
+    setIsLabActioning(false);
+  };
+
+const handleMarkPayment = async (bookingId: string, paymentStatus: 'SUCCESS', paymentMode: string) => {
     setIsUpdatingPayment(true);
     try {
       await testService.updatePaymentStatus(bookingId, paymentStatus, paymentMode);
-      dispatch(fetchBookings());
       if (selectedBooking?.id === bookingId) {
-        setSelectedBooking({ ...selectedBooking, paymentStatus: 'Paid' as any, status: 'Confirmed' as any });
+        setSelectedBooking({ ...selectedBooking, paymentStatus: 'SUCCESS' as any });
       }
-      toast.success('Payment marked as received. Booking confirmed.');
+      toast.success('Payment marked as received.');
     } catch (err: any) {
       toast.error(err?.response?.data?.error || 'Failed to update payment.');
     }
     setIsUpdatingPayment(false);
   };
 
+  const handleGenerateQR = async () => {
+    if (!selectedBooking) return;
+    setIsGeneratingQR(true);
+    setPaymentLinkUrl(null);
+    try {
+      const result = await testService.generatePaymentLink(selectedBooking.id);
+      setPaymentLinkUrl(result.paymentLinkUrl);
+      toast.success('QR / Payment link generated. Waiting for patient to pay...');
+      setIsPollingPayment(true);
+      const poll = setInterval(async () => {
+        try {
+          const status = await testService.checkPaymentLinkStatus(selectedBooking.id);
+          if (status.paymentStatus === 'SUCCESS') {
+            clearInterval(poll);
+            setIsPollingPayment(false);
+            setPaymentLinkUrl(null);
+            setSelectedBooking((prev: any) => prev ? { ...prev, paymentStatus: 'SUCCESS' } : prev);
+            toast.success('Payment confirmed automatically!');
+          }
+        } catch {}
+      }, 5000);
+      setTimeout(() => { clearInterval(poll); setIsPollingPayment(false); }, 300000);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || 'Failed to generate payment QR.');
+    }
+    setIsGeneratingQR(false);
+  };
   const handleStatusChange = async (status: BookingStatus) => {
     if (!selectedBooking) return;
     
@@ -239,9 +327,7 @@ const getStaffName = (id?: string) => {
     return found?.name || 'Not Assigned';
   };
 
-  // Resolves the displayed phlebotomist/partner name for a booking row.
-  // For HOME bookings accepted by a partner, the name lives in assignedPartner.user.name.
-  // For LAB bookings or executive-assigned HOME bookings, it falls back to phlebotomistId lookup.
+ 
   const getPhlebotomistDisplay = (booking: any): string => {
     if (booking.collectionMode === 'HOME') {
       if (booking.assignedPartner?.user?.name) {
@@ -488,41 +574,89 @@ const getStaffName = (id?: string) => {
                     <Activity className="h-3.5 w-3.5" /> Workflow Operations
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {selectedBooking.status === 'Pending' && (
-                      <>
-                        <button 
-                          onClick={() => handleStatusChange('Confirmed')}
-                          className="px-3 py-1.5 bg-[#006d6f] text-white rounded text-xs font-bold hover:bg-[#00595b] flex items-center gap-1"
-                        >
-                       <Check className="h-3.5 w-3.5" /> Approve Booking
-                        </button>
-                        <button 
-                          onClick={() => handleStatusChange('Cancelled')}
-                          className="px-3 py-1.5 bg-rose-600 text-white rounded text-xs font-bold hover:bg-rose-700 flex items-center gap-1"
-                        >
-                          <XCircle className="h-3.5 w-3.5" /> Reject Booking
-                        </button>
-                      </>
+             {(selectedBooking.status === 'Pending' || (selectedBooking as any).status === 'WAITING_FOR_ASSIGNMENT') && (
+                      (selectedBooking as any).collectionMode === 'LAB' ? (
+                        <div className="w-full space-y-2">
+                          <div className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+                            Lab Visit booking — pending lab approval
+                          </div>
+                          {!showRejectInput ? (
+                            <div className="flex gap-2">
+                              <button
+                                disabled={isLabActioning}
+                                onClick={handleAcceptLabBooking}
+                                className="px-3 py-1.5 bg-[#006d6f] text-white rounded text-xs font-bold hover:bg-[#00595b] flex items-center gap-1 disabled:opacity-50"
+                              >
+                                <Check className="h-3.5 w-3.5" /> Accept Lab Visit
+                              </button>
+                              <button
+                                disabled={isLabActioning}
+                                onClick={() => setShowRejectInput(true)}
+                                className="px-3 py-1.5 bg-rose-600 text-white rounded text-xs font-bold hover:bg-rose-700 flex items-center gap-1 disabled:opacity-50"
+                              >
+                                <XCircle className="h-3.5 w-3.5" /> Reject
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <input
+                                type="text"
+                                placeholder="Rejection reason (required)"
+                                value={rejectReason}
+                                onChange={e => setRejectReason(e.target.value)}
+                                className="w-full px-3 py-1.5 border border-rose-300 rounded text-xs outline-none focus:ring-2 focus:ring-rose-200"
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  disabled={isLabActioning || !rejectReason.trim()}
+                                  onClick={handleRejectLabBooking}
+                                  className="px-3 py-1.5 bg-rose-600 text-white rounded text-xs font-bold hover:bg-rose-700 disabled:opacity-50"
+                                >
+                                  {isLabActioning ? 'Rejecting...' : 'Confirm Reject'}
+                                </button>
+                                <button
+                                  onClick={() => { setShowRejectInput(false); setRejectReason(''); }}
+                                  className="px-3 py-1.5 bg-muted text-foreground rounded text-xs font-bold"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => handleStatusChange('Confirmed')}
+                            className="px-3 py-1.5 bg-[#006d6f] text-white rounded text-xs font-bold hover:bg-[#00595b] flex items-center gap-1"
+                          >
+                            <Check className="h-3.5 w-3.5" /> Approve Booking
+                          </button>
+                          <button
+                            onClick={() => handleStatusChange('Cancelled')}
+                            className="px-3 py-1.5 bg-rose-600 text-white rounded text-xs font-bold hover:bg-rose-700 flex items-center gap-1"
+                          >
+                            <XCircle className="h-3.5 w-3.5" /> Reject Booking
+                          </button>
+                        </>
+                      )
                     )}
-                    
              
-                    {(selectedBooking as any).paymentStatus?.toLowerCase() === 'pending' &&
-                      selectedBooking.status !== 'Cancelled' && (
+           {(selectedBooking as any).paymentStatus !== 'SUCCESS' &&
+                      (selectedBooking as any).collectionMode === 'HOME' &&
+                      selectedBooking.status !== 'Cancelled' &&
+                      selectedBooking.status !== 'Pending' && (
                       <div className="w-full mb-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                         <div className="text-xs font-bold text-amber-700 mb-2">
-                          {(selectedBooking as any).collectionMode === 'HOME'
-                            ? 'Cash payment pending — Lab assistant must collect before sample.'
-                            : 'Lab visit — Mark payment received at counter.'}
+                          Cash payment pending — Lab assistant must collect before sample collection.
                         </div>
-                        <div className="flex gap-2">
-                          <button
-                            disabled={isUpdatingPayment}
-                            onClick={() => handleMarkPayment(selectedBooking.id, 'SUCCESS', (selectedBooking as any).collectionMode === 'HOME' ? 'CASH' : 'QR_CODE')}
-                            className="px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-bold hover:bg-emerald-700 disabled:opacity-50"
-                          >
-                            {isUpdatingPayment ? 'Processing...' : 'Mark Payment Received'}
-                          </button>
-                        </div>
+                        <button
+                          disabled={isUpdatingPayment}
+                          onClick={() => handleMarkPayment(selectedBooking.id, 'SUCCESS', 'CASH')}
+                          className="px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-bold hover:bg-emerald-700 disabled:opacity-50"
+                        >
+                          {isUpdatingPayment ? 'Processing...' : 'Mark Cash Received'}
+                        </button>
                       </div>
                     )}
 
@@ -548,15 +682,101 @@ const getStaffName = (id?: string) => {
                       </>
                     )}
 
-                    {selectedBooking.status === 'Assigned' && (
-                      <button 
+     {(selectedBooking as any).rawStatus === 'PATIENT_REACHED_LAB' && (selectedBooking as any).collectionMode === 'LAB' && (
+                      <div className="w-full p-3 bg-violet-50 border border-violet-200 rounded-lg space-y-2">
+                        <div className="text-xs font-bold text-violet-700 flex items-center gap-1">
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Patient has reached the lab
+                        </div>
+                        {(selectedBooking as any).paymentStatus !== 'SUCCESS' ? (
+                          <>
+                            <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
+                              Payment pending — Generate QR for patient to scan and pay.
+                            </div>
+                            {paymentLinkUrl ? (
+                              <div className="space-y-2">
+                                <div className="text-xs font-bold text-emerald-700">
+                                  QR Generated — waiting for patient to pay...
+                                </div>
+                                <a
+                                  href={paymentLinkUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-xs text-primary underline break-all"
+                                >
+                                  {paymentLinkUrl}
+                                </a>
+                                {isPollingPayment && (
+                                  <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                    <Activity className="h-3 w-3 animate-spin" /> Auto-checking payment...
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <button
+                                disabled={isGeneratingQR}
+                                onClick={handleGenerateQR}
+                                className="px-3 py-1.5 bg-[#006d6f] text-white rounded text-xs font-bold hover:bg-[#00595b] disabled:opacity-50"
+                              >
+                                {isGeneratingQR ? 'Generating...' : 'Collect Payment (QR)'}
+                              </button>
+                            )}
+                            <button
+                              disabled={isUpdatingPayment}
+                              onClick={() => handleMarkPayment(selectedBooking.id, 'SUCCESS', 'CASH')}
+                              className="px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-bold hover:bg-emerald-700 disabled:opacity-50"
+                            >
+                              {isUpdatingPayment ? 'Processing...' : 'Mark Cash Received'}
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            disabled={isLabStatusUpdating}
+                            onClick={() => handleUpdateLabStatus('SAMPLE_COLLECTED')}
+                            className="px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-bold hover:bg-emerald-700 disabled:opacity-50"
+                          >
+                            {isLabStatusUpdating ? 'Updating...' : 'Mark Sample Collected'}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    {(selectedBooking as any).rawStatus === 'SAMPLE_COLLECTED' && (selectedBooking as any).collectionMode === 'LAB' && (
+                      <button
+                        disabled={isLabStatusUpdating}
+                        onClick={() => handleUpdateLabStatus('PROCESSING')}
+                        className="px-3 py-1.5 bg-sky-600 text-white rounded text-xs font-bold hover:bg-sky-700 disabled:opacity-50"
+                      >
+                        {isLabStatusUpdating ? 'Updating...' : 'Start Processing'}
+                      </button>
+                    )}
+
+                    {(selectedBooking as any).rawStatus === 'PROCESSING' && (selectedBooking as any).collectionMode === 'LAB' && (
+                      <button
+                        disabled={isLabStatusUpdating}
+                        onClick={() => handleUpdateLabStatus('REPORT_READY')}
+                        className="px-3 py-1.5 bg-teal-600 text-white rounded text-xs font-bold hover:bg-teal-700 disabled:opacity-50"
+                      >
+                        {isLabStatusUpdating ? 'Updating...' : 'Mark Report Ready'}
+                      </button>
+                    )}
+
+                    {(selectedBooking as any).rawStatus === 'REPORT_READY' && (selectedBooking as any).collectionMode === 'LAB' && (
+                      <button
+                        disabled={isLabStatusUpdating}
+                        onClick={() => handleUpdateLabStatus('COMPLETED')}
+                        className="px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-bold hover:bg-emerald-700 disabled:opacity-50"
+                      >
+                        {isLabStatusUpdating ? 'Updating...' : 'Mark Completed'}
+                      </button>
+                    )}
+
+                    {selectedBooking.status === 'Assigned' && (selectedBooking as any).collectionMode !== 'LAB' && (
+                      <button
                         onClick={() => handleStatusChange('Collected')}
                         className="px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-bold hover:bg-emerald-700"
                       >
                         Mark Sample Collected
                       </button>
                     )}
-
                     {selectedBooking.status === 'Collected' && (
                       <button 
                         onClick={() => {
@@ -660,39 +880,95 @@ const getStaffName = (id?: string) => {
                 </div>
 
                 
-                <div className="border-t border-border pt-4">
+              <div className="border-t border-border pt-4">
                   <h3 className="text-sm font-bold mb-4 text-foreground">Diagnostic Workflow Timeline</h3>
-                  <div className="relative pl-6 border-l border-dashed border-border space-y-6">
-                    {ALL_STATUSES.map((st, idx) => {
-                      const currentIdx = ALL_STATUSES.indexOf(selectedBooking.status);
-                      const isDone = idx <= currentIdx;
-                      const isCurrent = idx === currentIdx;
+                  {(selectedBooking as any).collectionMode === 'LAB' ? (() => {
+                    const LAB_TIMELINE: { label: string; rawStatus: string; desc: string }[] = [
+                      { label: 'Booking Created', rawStatus: 'WAITING_FOR_ASSIGNMENT', desc: 'Booking registered through mobile app' },
+                      { label: 'Waiting for Lab Approval', rawStatus: 'WAITING_FOR_ASSIGNMENT', desc: 'Awaiting lab admin review' },
+                      { label: 'Booking Accepted', rawStatus: 'CONFIRMED', desc: 'Lab has approved the visit' },
+                      { label: 'Patient Reached Lab', rawStatus: 'PATIENT_REACHED_LAB', desc: 'Patient confirmed arrival at lab counter' },
+                      { label: 'Payment Received', rawStatus: 'PATIENT_REACHED_LAB', desc: 'Counter payment collected' },
+                      { label: 'Sample Collected', rawStatus: 'SAMPLE_COLLECTED', desc: 'Specimen collected and barcoded' },
+                      { label: 'Processing', rawStatus: 'PROCESSING', desc: 'Tests underway in lab' },
+                      { label: 'Report Ready', rawStatus: 'REPORT_READY', desc: 'Results validated and ready' },
+                      { label: 'Completed', rawStatus: 'COMPLETED', desc: 'Report dispatched to patient' },
+                    ];
+                    const RAW_RANK: Record<string, number> = {
+                      WAITING_FOR_ASSIGNMENT: 0, PENDING: 0, CONFIRMED: 2,
+                      PATIENT_REACHED_LAB: 3, SAMPLE_COLLECTED: 5, PROCESSING: 6,
+                      REPORT_READY: 7, COMPLETED: 8,
+                    };
+                    const currentRawStatus = (selectedBooking as any).rawStatus || 'WAITING_FOR_ASSIGNMENT';
+                    const paymentDone = (selectedBooking as any).paymentStatus === 'SUCCESS';
+                    const currentRank = RAW_RANK[currentRawStatus] ?? 0;
 
-                      return (
-                        <div key={st} className="relative">
-                          <span className={cn(
-                            "absolute -left-[31px] top-0.5 h-4 w-4 rounded-full border-2 border-background flex items-center justify-center shadow-sm transition-colors",
-                            isDone ? "bg-primary border-primary" : "bg-card border-muted-foreground/40",
-                            isCurrent && "ring-4 ring-primary/20"
-                          )}>
-                            {isDone && <CheckCircle2 className="h-3 w-3 text-white" />}
-                          </span>
-                          <div className="text-sm font-bold flex items-center gap-2">
-                            <span className={isDone ? "text-foreground" : "text-muted-foreground"}>{st}</span>
-                            {isCurrent && <span className="bg-primary/10 text-primary text-[10px] uppercase px-1.5 py-0.5 rounded font-black">Live</span>}
+                    return (
+                      <div className="relative pl-6 border-l border-dashed border-border space-y-6">
+                        {LAB_TIMELINE.map((step, idx) => {
+                          let isDone = false;
+                          let isCurrent = false;
+                          if (idx === 0) { isDone = true; }
+                          else if (idx === 1) { isDone = currentRank >= 0; isCurrent = currentRank === 0; }
+                          else if (idx === 2) { isDone = currentRank >= 2; isCurrent = currentRank === 2; }
+                          else if (idx === 3) { isDone = currentRank >= 3; isCurrent = currentRank === 3 && !paymentDone; }
+                          else if (idx === 4) { isDone = currentRank >= 3 && paymentDone; isCurrent = currentRank === 3 && !paymentDone; }
+                          else if (idx === 5) { isDone = currentRank >= 5; isCurrent = currentRank === 5; }
+                          else if (idx === 6) { isDone = currentRank >= 6; isCurrent = currentRank === 6; }
+                          else if (idx === 7) { isDone = currentRank >= 7; isCurrent = currentRank === 7; }
+                          else if (idx === 8) { isDone = currentRank >= 8; isCurrent = currentRank === 8; }
+
+                          return (
+                            <div key={idx} className="relative">
+                              <span className={cn(
+                                "absolute -left-[31px] top-0.5 h-4 w-4 rounded-full border-2 border-background flex items-center justify-center shadow-sm transition-colors",
+                                isDone ? "bg-primary border-primary" : "bg-card border-muted-foreground/40",
+                                isCurrent && "ring-4 ring-primary/20"
+                              )}>
+                                {isDone && <CheckCircle2 className="h-3 w-3 text-white" />}
+                              </span>
+                              <div className="text-sm font-bold flex items-center gap-2">
+                                <span className={isDone || isCurrent ? "text-foreground" : "text-muted-foreground"}>{step.label}</span>
+                                {isCurrent && <span className="bg-primary/10 text-primary text-[10px] uppercase px-1.5 py-0.5 rounded font-black">Live</span>}
+                              </div>
+                              <div className="text-xs text-muted-foreground mt-0.5">{step.desc}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })() : (
+                    <div className="relative pl-6 border-l border-dashed border-border space-y-6">
+                      {ALL_STATUSES.map((st, idx) => {
+                        const currentIdx = ALL_STATUSES.indexOf(selectedBooking.status);
+                        const isDone = idx <= currentIdx;
+                        const isCurrent = idx === currentIdx;
+                        return (
+                          <div key={st} className="relative">
+                            <span className={cn(
+                              "absolute -left-[31px] top-0.5 h-4 w-4 rounded-full border-2 border-background flex items-center justify-center shadow-sm transition-colors",
+                              isDone ? "bg-primary border-primary" : "bg-card border-muted-foreground/40",
+                              isCurrent && "ring-4 ring-primary/20"
+                            )}>
+                              {isDone && <CheckCircle2 className="h-3 w-3 text-white" />}
+                            </span>
+                            <div className="text-sm font-bold flex items-center gap-2">
+                              <span className={isDone ? "text-foreground" : "text-muted-foreground"}>{st}</span>
+                              {isCurrent && <span className="bg-primary/10 text-primary text-[10px] uppercase px-1.5 py-0.5 rounded font-black">Live</span>}
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-0.5">
+                              {st === 'Assigned' && selectedBooking.phlebotomistId ? `Allocated to ${getStaffName(selectedBooking.phlebotomistId)}` : ''}
+                              {st === 'Processing' && selectedBooking.technicianId ? `Processing by ${getStaffName(selectedBooking.technicianId)}` : ''}
+                              {st === 'Confirmed' ? 'Approved and validated by operations' : ''}
+                              {st === 'Pending' ? 'Booking registered through mobile client' : ''}
+                              {st === 'Collected' && isDone ? 'Specimen barcoded and sealed' : ''}
+                              {st === 'Completed' && isDone ? 'Validated report published to patient portal' : ''}
+                            </div>
                           </div>
-                          <div className="text-xs text-muted-foreground mt-0.5">
-                            {st === 'Assigned' && selectedBooking.phlebotomistId ? `Allocated to ${getStaffName(selectedBooking.phlebotomistId)}` : ''}
-                            {st === 'Processing' && selectedBooking.technicianId ? `Processing by ${getStaffName(selectedBooking.technicianId)}` : ''}
-                            {st === 'Confirmed' ? 'Approved and validated by operations' : ''}
-                            {st === 'Pending' ? 'Booking registered through mobile client' : ''}
-                            {st === 'Collected' && isDone ? 'Specimen barcoded and sealed' : ''}
-                            {st === 'Completed' && isDone ? 'Validated report published to patient portal' : ''}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
               </div>
@@ -733,7 +1009,10 @@ const getStaffName = (id?: string) => {
                             <div>
                               <div className="font-semibold text-foreground text-sm">{partner.user?.name || 'Partner'}</div>
                               <div className="text-xs text-muted-foreground">{partner.labName} · {partner.role}</div>
-                              <div className="text-xs text-amber-600 font-semibold">★ {partner.rating?.toFixed(1) || '0.0'}</div>
+                            <div className="flex items-center gap-1 text-xs text-amber-600 font-semibold">
+  <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
+  {partner.rating?.toFixed(1) || '0.0'}
+</div>
                             </div>
                           </div>
                           <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />

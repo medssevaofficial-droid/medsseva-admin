@@ -75,7 +75,7 @@ const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'FRANCHISE', 'LAB_DEPARTMENT', 'PA
   return (
     <div className="min-h-screen bg-background flex selection:bg-primary/20">
       
-      {/* 🎨 Left Visual Narrative Branding Pane */}
+   
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-tr from-[#004B4D] to-[#006D6F] relative overflow-hidden items-center justify-center p-12">
         
         {/* Background graphic accents */}
@@ -110,7 +110,7 @@ const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'FRANCHISE', 'LAB_DEPARTMENT', 'PA
         </div>
       </div>
 
-      {/* 🔐 Right Credentials Workspace Pane */}
+   
       <div className="w-full lg:w-1/2 flex flex-col justify-center px-6 sm:px-12 md:px-20 xl:px-32 py-12 bg-background">
         
         <div className="max-w-md w-full mx-auto space-y-8">

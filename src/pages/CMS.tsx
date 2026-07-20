@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useCmsBannersQuery, useCmsConfigQuery, useCmsAlertsQuery, useCmsPagesQuery, useCmsAuditLogsQuery } from '@/hooks/useAdminQueries';
 import { useAppSelector, useAppDispatch } from '../redux/hooks';
 import {
   fetchBanners, createBanner, updateBanner, removeBanner,
@@ -55,11 +56,17 @@ export const CMSPage: React.FC = () => {
   const [emergType, setEmergType] = useState<'info' | 'warning' | 'critical'>('info');
   const [emergActive, setEmergActive] = useState(true);
 
-  useEffect(() => {
-    dispatch(fetchBanners());
-    dispatch(fetchConfig());
-    dispatch(fetchAlerts());
-  }, [dispatch]);
+ useCmsBannersQuery();
+  useCmsConfigQuery();
+  useCmsAlertsQuery();
+  useCmsPagesQuery();
+  useCmsAuditLogsQuery();
+
+useCmsBannersQuery();
+  useCmsConfigQuery();
+  useCmsAlertsQuery();
+  useCmsPagesQuery();
+  useCmsAuditLogsQuery();
 
   useEffect(() => {
     if (alerts.length > 0) {

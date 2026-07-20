@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useAppSelector, useAppDispatch } from '../redux/hooks';
-import { upsertPackage, fetchPackages } from '../redux/slices/testSlice';
+import { upsertPackage } from '../redux/slices/testSlice';
 import { useEffect } from 'react';
+import { usePackagesQuery } from '@/hooks/useAdminQueries';
 import { MedicalPackage } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -24,10 +25,12 @@ export const PackagesPage: React.FC = () => {
   const tests = useAppSelector(state => state.tests.tests);
   const packages = useAppSelector(state => state.tests.packages);
 
-useEffect(() => {
-    dispatch(fetchPackages());
-  }, [dispatch]);
+const { isLoading: pkgLoading } = usePackagesQuery();
+const [pageLoading, setPageLoading] = useState(pkgLoading);
 
+useEffect(() => {
+    if (!pkgLoading) setPageLoading(false);
+  }, [pkgLoading]);
   const [search, setSearch] = useState('');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingPackage, setEditingPackage] = useState<MedicalPackage | null>(null);
@@ -110,6 +113,50 @@ useEffect(() => {
       .filter(Boolean)
       .join(', ');
   };
+
+if (pageLoading) {
+    return (
+      <div className="space-y-6 pb-10 animate-pulse">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="space-y-2">
+            <div className="h-7 bg-muted rounded w-64" />
+            <div className="h-4 bg-muted rounded w-96" />
+          </div>
+          <div className="h-9 bg-muted rounded-lg w-36" />
+        </div>
+
+        <div className="h-9 bg-muted rounded-lg w-80" />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <div key={i} className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden flex flex-col">
+              <div className="p-6 space-y-4 flex-1">
+                <div className="flex justify-between items-start gap-2">
+                  <div className="space-y-2">
+                    <div className="h-4 bg-muted rounded w-16" />
+                    <div className="h-5 bg-muted rounded w-40" />
+                  </div>
+                  <div className="h-5 bg-muted rounded w-16" />
+                </div>
+                <div className="space-y-1.5">
+                  <div className="h-3 bg-muted rounded w-full" />
+                  <div className="h-3 bg-muted rounded w-4/5" />
+                </div>
+                <div className="space-y-2 pt-2">
+                  <div className="h-3 bg-muted rounded w-32" />
+                  <div className="h-20 bg-muted/50 rounded-lg w-full" />
+                </div>
+              </div>
+              <div className="px-6 py-4 bg-muted/30 border-t border-border flex items-center justify-between">
+                <div className="h-6 bg-muted rounded w-20" />
+                <div className="h-8 w-8 bg-muted rounded-lg" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-10">

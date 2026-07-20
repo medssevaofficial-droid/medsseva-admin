@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { Booking, BookingStatus } from '../../types';
 import { testService } from '../../services/api';
-import { MOCK_BOOKINGS } from '../../mock/db';
+
 
 interface BookingState {
   bookings: Booking[];
@@ -105,7 +105,22 @@ return {
             packages: b.packages ? b.packages.map((bp: any) => bp.package) : [],
             tests: b.tests ? b.tests.map((bt: any) => bt.test) : [],
             totalAmount: b.totalPaid,
-            status: b.status.charAt(0).toUpperCase() + b.status.slice(1).toLowerCase(),
+           rawStatus: b.status,
+            status: (() => {
+              const statusMap: Record<string, string> = {
+                PENDING: 'Pending',
+                WAITING_FOR_ASSIGNMENT: 'Pending',
+                CONFIRMED: 'Confirmed',
+                PATIENT_REACHED_LAB: 'PATIENT_REACHED_LAB',
+                SAMPLE_COLLECTED: 'Collected',
+                PROCESSING: 'Processing',
+                REPORT_READY: 'Approved',
+                COMPLETED: 'Completed',
+                CANCELLED: 'Cancelled',
+                REJECTED: 'Cancelled',
+              };
+              return statusMap[b.status] || (b.status.charAt(0).toUpperCase() + b.status.slice(1).toLowerCase());
+            })(),
             address: b.address,
             cityId: b.address?.city?.toLowerCase().slice(0, 3) || 'N/A',
             franchiseId: undefined,
@@ -121,11 +136,24 @@ return {
         state.loading = false;
         state.error = action.error.message || 'Failed to fetch bookings';
       })
-      .addCase(updateBookingStatusAsync.fulfilled, (state, action) => {
+.addCase(updateBookingStatusAsync.fulfilled, (state, action) => {
         const index = state.bookings.findIndex(b => b.id === action.payload.id);
         if (index !== -1) {
-          const status = action.payload.status;
-          state.bookings[index].status = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+          const raw = action.payload.status;
+          const statusMap: Record<string, string> = {
+            PENDING: 'Pending',
+            WAITING_FOR_ASSIGNMENT: 'Pending',
+            CONFIRMED: 'Confirmed',
+            PATIENT_REACHED_LAB: 'PATIENT_REACHED_LAB',
+            SAMPLE_COLLECTED: 'Collected',
+            PROCESSING: 'Processing',
+            REPORT_READY: 'Approved',
+            COMPLETED: 'Completed',
+            CANCELLED: 'Cancelled',
+            REJECTED: 'Cancelled',
+          };
+          (state.bookings[index] as any).rawStatus = raw;
+          state.bookings[index].status = statusMap[raw] || (raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase());
         }
       });
   }

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useBranchesQuery } from '@/hooks/useAdminQueries';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../redux/store';
 import {
@@ -10,8 +11,20 @@ import {
 } from '../redux/slices/branchSlice';
 import { Branch, BranchFormData } from '../services/branch.service';
 import {
-  Plus, Pencil, Trash2, ToggleLeft, ToggleRight,
-  MapPin, Phone, Mail, Clock, X, Search
+  Plus,
+  Pencil,
+  Trash2,
+  ToggleLeft,
+  ToggleRight,
+  MapPin,
+  Phone,
+  Mail,
+  Clock,
+  X,
+  Search,
+  Home,
+  Microscope,
+  CheckCircle
 } from 'lucide-react';
 import { useToast } from '../components/Toast';
 
@@ -43,7 +56,7 @@ const [submitting, setSubmitting] = useState(false);
   const { success, error } = useToast();
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
-  useEffect(() => { dispatch(fetchBranches()); }, [dispatch]);
+useBranchesQuery();
 
   const filtered = (branches || []).filter((b: Branch) =>
     b.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -132,8 +145,17 @@ if (!form.name || !form.code || !form.line1 || !form.city || !form.pincode) {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        {[
+<div className="grid grid-cols-3 gap-4">
+        {loading ? (
+          <>
+            {[1, 2, 3].map(i => (
+              <div key={i} className="bg-white rounded-xl border p-4 animate-pulse space-y-2">
+                <div className="h-3 bg-gray-200 rounded w-24" />
+                <div className="h-7 bg-gray-200 rounded w-12" />
+              </div>
+            ))}
+          </>
+        ) : [
           { label: 'Total Branches', value: branches?.length || 0, color: 'blue' },
           { label: 'Active', value: branches?.filter((b: Branch) => b.isActive).length || 0, color: 'green' },
           { label: 'Inactive', value: branches?.filter((b: Branch) => !b.isActive).length || 0, color: 'red' },
@@ -144,10 +166,53 @@ if (!form.name || !form.code || !form.line1 || !form.city || !form.pincode) {
           </div>
         ))}
       </div>
-
       {/* Table */}
-      {loading ? (
-        <div className="text-center py-12 text-gray-400">Loading branches...</div>
+    {loading ? (
+        <div className="bg-white rounded-xl border overflow-hidden animate-pulse">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                {['Branch', 'Location', 'Contact', 'Services', 'Status', 'Actions'].map(h => (
+                  <th key={h} className="px-4 py-3 text-left">
+                    <div className="h-3 bg-gray-200 rounded w-16" />
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {[1, 2, 3, 4, 5].map(i => (
+                <tr key={i}>
+                  <td className="px-4 py-3">
+                    <div className="h-3.5 bg-gray-200 rounded w-32 mb-1.5" />
+                    <div className="h-2.5 bg-gray-200 rounded w-20" />
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="h-3 bg-gray-200 rounded w-40 mb-1.5" />
+                    <div className="h-2.5 bg-gray-200 rounded w-24" />
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="h-3 bg-gray-200 rounded w-28 mb-1.5" />
+                    <div className="h-2.5 bg-gray-200 rounded w-32" />
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="h-5 bg-gray-200 rounded-full w-28 mb-1.5" />
+                    <div className="h-5 bg-gray-200 rounded-full w-20" />
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="h-5 bg-gray-200 rounded-full w-16" />
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <div className="h-5 w-5 bg-gray-200 rounded" />
+                      <div className="h-5 w-5 bg-gray-200 rounded" />
+                      <div className="h-5 w-5 bg-gray-200 rounded" />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-12 text-gray-400">No branches found.</div>
       ) : (
@@ -193,12 +258,14 @@ if (!form.name || !form.code || !form.line1 || !form.city || !form.pincode) {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-1">
-                      <span className={`text-xs px-2 py-0.5 rounded-full w-fit ${b.homeCollection ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-400'}`}>
-                        🏠 Home Collection
-                      </span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full w-fit ${b.labVisit ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-400'}`}>
-                        🔬 Lab Visit
-                      </span>
+                   <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full w-fit ${b.homeCollection ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-400'}`}>
+  <Home size={12} />
+  Home Collection
+</span>
+                     <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full w-fit ${b.labVisit ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-400'}`}>
+  <Microscope size={12} />
+  Lab Visit
+</span>
                     </div>
                   </td>
                   <td className="px-4 py-3">
@@ -350,9 +417,33 @@ if (!form.name || !form.code || !form.line1 || !form.city || !form.pincode) {
               {/* Toggles */}
               <div className="flex gap-6">
                 {[
-                  { key: 'homeCollection', label: '🏠 Home Collection' },
-                  { key: 'labVisit', label: '🔬 Lab Visit' },
-                  { key: 'isActive', label: '✅ Active' },
+                 {
+  key: 'homeCollection',
+  label: (
+    <span className="inline-flex items-center gap-1">
+      <Home size={14} />
+      Home Collection
+    </span>
+  ),
+},
+{
+  key: 'labVisit',
+  label: (
+    <span className="inline-flex items-center gap-1">
+      <Microscope size={14} />
+      Lab Visit
+    </span>
+  ),
+},
+{
+  key: 'isActive',
+  label: (
+    <span className="inline-flex items-center gap-1">
+      <CheckCircle size={14} />
+      Active
+    </span>
+  ),
+},
                 ].map(({ key, label }) => (
                   <label key={key} className="flex items-center gap-2 cursor-pointer">
                     <input
@@ -361,7 +452,9 @@ if (!form.name || !form.code || !form.line1 || !form.city || !form.pincode) {
                       onChange={e => setForm(f => ({ ...f, [key]: e.target.checked }))}
                       className="w-4 h-4 accent-blue-600"
                     />
-                    <span className="text-sm text-gray-700">{label}</span>
+                 <span className="text-sm text-gray-700 flex items-center">
+  {label}
+</span>
                   </label>
                 ))}
               </div>

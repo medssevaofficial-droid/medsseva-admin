@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useInventoryQuery, useInventoryTransactionsQuery, useInventorySuppliersQuery, useInventoryAnalyticsQuery } from '@/hooks/useAdminQueries';
 import { useAppSelector, useAppDispatch } from '../redux/hooks';
 import {
   fetchInventoryItems,
@@ -55,13 +56,10 @@ export const InventoryPage: React.FC = () => {
   const [newExpiryDate, setNewExpiryDate] = useState('');
   const [newPurchaseCost, setNewPurchaseCost] = useState('');
 
-  useEffect(() => {
-   dispatch(fetchInventoryItems({}));
-    dispatch(fetchTransactions({}));
-    dispatch(fetchAnalytics());
-    dispatch(fetchSuppliers());
-  }, [dispatch]);
-
+ useInventoryQuery({});
+  useInventoryTransactionsQuery({});
+  useInventoryAnalyticsQuery();
+  useInventorySuppliersQuery();
   useEffect(() => {
     if (error) toastError(error);
   }, [error]);
@@ -208,10 +206,41 @@ export const InventoryPage: React.FC = () => {
             </button>
           </div>
 
-          {loading ? (
-            <div className="flex items-center justify-center py-16 gap-2 text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              <span className="text-sm">Loading inventory...</span>
+       {loading ? (
+            <div className="overflow-x-auto animate-pulse">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-muted/50 border-b">
+                  <tr>
+                    {[1, 2, 3, 4, 5].map(i => (
+                      <th key={i} className="px-6 py-3">
+                        <div className="h-2.5 bg-muted rounded w-20" />
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {[1, 2, 3, 4, 5, 6].map(i => (
+                    <tr key={i}>
+                      <td className="px-6 py-4">
+                        <div className="h-3.5 bg-muted rounded w-36 mb-1.5" />
+                        <div className="h-2.5 bg-muted rounded w-24" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-5 bg-muted rounded w-20" />
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="h-4 bg-muted rounded w-12 ml-auto" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-3 bg-muted rounded w-24" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-5 bg-muted rounded w-20" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ) : (
             <div className="overflow-x-auto">

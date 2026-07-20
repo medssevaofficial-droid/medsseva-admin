@@ -13,7 +13,7 @@ import { ReportApprovalPage } from '@/pages/ReportApproval';
 import { PaymentsPage } from '@/pages/Payments';
 import { CouponsPage } from '@/pages/Coupons';
 import { FranchisesPage } from '@/pages/Franchises';
-import { NotificationsPage } from '@/pages/Notifications';
+import NotificationsPage from '@/pages/Notifications';
 import { CMSPage } from '@/pages/CMS';
 import { AnalyticsPage } from '@/pages/Analytics';
 import { LogsPage } from '@/pages/Logs';

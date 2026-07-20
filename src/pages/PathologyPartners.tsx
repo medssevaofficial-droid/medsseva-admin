@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { usePartnersQuery } from '@/hooks/useAdminQueries';
 import { testService } from '../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -49,7 +50,7 @@ const REJECTION_REASONS = [
 
 export const PathologyPartnersPage: React.FC = () => {
   const [partners, setPartners] = useState<Partner[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
@@ -58,19 +59,12 @@ export const PathologyPartnersPage: React.FC = () => {
   const [customReason, setCustomReason] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const loadPartners = async () => {
-    setIsLoading(true);
-    try {
-      const data = await testService.getPartners();
-      setPartners(data);
-    } catch {
-      toast.error('Failed to load partners.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+const { data: partnersData, isLoading: partnersQueryLoading } = usePartnersQuery();
+  const isLoading = partnersQueryLoading && partners.length === 0;
 
-  useEffect(() => { loadPartners(); }, []);
+  useEffect(() => {
+    if (partnersData) setPartners(partnersData);
+  }, [partnersData]);
 
   const handleApprove = async (partner: Partner) => {
     setIsUpdating(true);
@@ -161,15 +155,14 @@ export const PathologyPartnersPage: React.FC = () => {
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Pathology Partners</h1>
           <p className="text-sm text-muted-foreground">Manage partner registrations, approvals, and status.</p>
         </div>
-        <button
-          onClick={loadPartners}
+     <button
+          onClick={() => window.location.reload()}
           className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-card text-sm font-semibold hover:bg-muted transition-colors"
         >
           <RefreshCw className="h-4 w-4" /> Refresh
         </button>
       </div>
-
-      {/* Stats */}
+{/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {(['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'] as ApprovalStatus[]).map(s => {
           const cfg = STATUS_CONFIG[s];
@@ -180,7 +173,11 @@ export const PathologyPartnersPage: React.FC = () => {
                 <Icon className={cn('h-4 w-4', cfg.text)} />
                 <span className="text-xs font-bold text-muted-foreground uppercase">{cfg.label}</span>
               </div>
-              <div className={cn('text-2xl font-bold', cfg.text)}>{counts[s]}</div>
+              {isLoading ? (
+                <div className="h-7 bg-muted rounded w-10 animate-pulse mt-1" />
+              ) : (
+                <div className={cn('text-2xl font-bold', cfg.text)}>{counts[s]}</div>
+              )}
             </div>
           );
         })}
@@ -232,12 +229,46 @@ export const PathologyPartnersPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
-                    Loading partners...
-                  </td>
-                </tr>
+           {isLoading ? (
+                <>
+                  {[1, 2, 3, 4, 5].map(i => (
+                    <tr key={i} className="animate-pulse border-b border-border">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 rounded-full bg-muted shrink-0" />
+                          <div className="space-y-1.5">
+                            <div className="h-3.5 bg-muted rounded w-28" />
+                            <div className="h-2.5 bg-muted rounded w-20" />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-3.5 bg-muted rounded w-32 mb-1.5" />
+                        <div className="h-2.5 bg-muted rounded w-20" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-3 bg-muted rounded w-28 mb-1.5" />
+                        <div className="h-3 bg-muted rounded w-36" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-3.5 bg-muted rounded w-12 mb-1.5" />
+                        <div className="h-2.5 bg-muted rounded w-20" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-5 bg-muted rounded-full w-20" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-3 bg-muted rounded w-20" />
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <div className="h-7 w-7 bg-muted rounded-full" />
+                          <div className="h-7 w-7 bg-muted rounded-full" />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </>
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">

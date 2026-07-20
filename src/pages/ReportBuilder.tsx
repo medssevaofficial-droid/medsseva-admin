@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo,useEffect } from 'react';
+import { useReportsQuery, useBookingsForReportQuery } from '@/hooks/useAdminQueries';
 import { useAppSelector, useAppDispatch } from '../redux/hooks';
 import {
   fetchBookingsForReport,
@@ -200,10 +201,8 @@ const toast = useToast();
   const [showModal, setShowModal] = useState(false);
   const [editingParam, setEditingParam] = useState<{ groupIdx: number; paramIdx: number } | null>(null);
 
-  useEffect(() => {
-    dispatch(fetchBookingsForReport());
-    dispatch(fetchAllReports());
-  }, [dispatch]);
+useReportsQuery();
+  useBookingsForReportQuery();
 
   useEffect(() => {
     branchService.getAll().then(res => {

@@ -31,10 +31,10 @@ loginSuccess: (state, action: PayloadAction<{ user: User; token: string }>) => {
       state.isAuthenticated = true;
       state.user = action.payload.user; // includes permissions + accessibleModules
       state.token = action.payload.token;
-      state.error = null;
+     state.error = null;
+      const expiry = Date.now() + 15 * 24 * 60 * 60 * 1000;
       localStorage.setItem('medsseva_token', action.payload.token);
-
-      // Lock context dynamically based on logged-in franchise admin alignment
+      localStorage.setItem('medsseva_token_expiry', String(expiry));
       const franchiseId = action.payload.user.franchiseId;
       if (franchiseId === 'fr-104') {
         state.currentCityId = 'ind';
@@ -62,9 +62,10 @@ refreshUser: (state, action: PayloadAction<{ user: User }>) => {
       state.isAuthenticated = false;
       state.isLoading = false;
       state.error = null;
-      localStorage.removeItem('medsseva_token');
+    localStorage.removeItem('medsseva_token');
+      localStorage.removeItem('medsseva_token_expiry');
     },
-     setPreviewRole: (state, action: PayloadAction<string | null>) => {
+     setPreviewRole:(state, action: PayloadAction<string | null>) => {
       state.previewRoleSlug = action.payload;
     },
     switchContext: (state, action: PayloadAction<{ cityId?: string; branchId?: string }>) => {

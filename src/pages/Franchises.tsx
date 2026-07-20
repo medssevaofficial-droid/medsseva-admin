@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   MapPin, 
@@ -42,9 +42,12 @@ export const FranchisesPage: React.FC = () => {
   const bookings = useAppSelector(state => state.bookings.bookings);
   
   const [selectedSettlement, setSelectedSettlement] = useState<Settlement | null>(null);
+  const [pageLoading, setPageLoading] = useState(true);
 
-  // Compute dynamic stats based on live database/Redux bookings list
-const dynamicFranchises: any[] = [];
+useEffect(() => {
+    setPageLoading(false);
+  }, []);
+  const dynamicFranchises: any[] = [];
 
   const filteredFranchises = dynamicFranchises.filter(f => 
     f.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -93,13 +96,12 @@ const dynamicFranchises: any[] = [];
         </div>
       </div>
 
-      {activeTab === 'directory' ? (
+{activeTab === 'directory' ? (
         <>
-          {/* SEARCH BAR */}
           <div className="relative w-full md:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder="Search local hub networks..."
               className="w-full pl-9 pr-4 py-2.5 border text-xs font-bold shadow-sm rounded-xl bg-card focus:ring-2 focus:ring-[#006D6F]/20 outline-none"
               value={search}
@@ -107,7 +109,38 @@ const dynamicFranchises: any[] = [];
             />
           </div>
 
-          {/* DIRECTORY GRID */}
+          {pageLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="bg-card border border-border rounded-2xl shadow-sm flex flex-col overflow-hidden">
+                  <div className="p-6 flex-1 space-y-5">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="space-y-2">
+                        <div className="h-4 bg-muted rounded w-20" />
+                        <div className="h-5 bg-muted rounded w-36" />
+                      </div>
+                      <div className="h-4 bg-muted rounded w-14" />
+                    </div>
+                    <div className="space-y-2 border-t pt-3">
+                      <div className="h-3 bg-muted rounded w-40" />
+                      <div className="h-3 bg-muted rounded w-32" />
+                      <div className="h-6 bg-muted rounded w-36" />
+                    </div>
+                  </div>
+                  <div className="px-6 py-4 bg-muted/30 border-t grid grid-cols-2 gap-2">
+                    <div className="space-y-1.5">
+                      <div className="h-2.5 bg-muted rounded w-20" />
+                      <div className="h-5 bg-muted rounded w-16" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="h-2.5 bg-muted rounded w-20" />
+                      <div className="h-5 bg-muted rounded w-12" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
            {dynamicFranchises.map(fr => (
               <motion.div 
@@ -157,10 +190,11 @@ const dynamicFranchises: any[] = [];
                 </div>
               </motion.div>
             ))}
-          </div>
+     </div>
+          )}
         </>
       ) : (
-        /* 💸 SETTLEMENTS LEDGER TABLE */
+      
         <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">

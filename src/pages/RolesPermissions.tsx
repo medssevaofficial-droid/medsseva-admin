@@ -1,4 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useRolesQuery, useAllPermissionsQuery } from '@/hooks/useAdminQueries';
 import { rbacService } from '@/services/api';
 import { AdminRole, Permission, MODULES, ACTIONS } from '@/types/rbac';
 import { PermissionGate } from '@/components/PermissionGate';
@@ -12,7 +14,7 @@ import { cn } from '@/utils/cn';
 export const RolesPermissionsPage: React.FC = () => {
   const [roles, setRoles] = useState<AdminRole[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
-  const [loading, setLoading] = useState(true);
+
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<AdminRole | null>(null);
@@ -22,24 +24,18 @@ export const RolesPermissionsPage: React.FC = () => {
   const [formName, setFormName] = useState('');
   const [formDesc, setFormDesc] = useState('');
   const [selectedPerms, setSelectedPerms] = useState<Set<string>>(new Set());
-  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set(MODULES.map(m => m.key)));
+ const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set(MODULES.map(m => m.key)));
+  const queryClient = useQueryClient();
+  const { error } = useToast();
+
+const { data: rolesData, isLoading: rolesLoading } = useRolesQuery();
+  const { data: permsData, isLoading: permsLoading } = useAllPermissionsQuery();
+  const loading = (rolesLoading && !roles.length) || (permsLoading && !permissions.length);
 
   useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const [r, p] = await Promise.all([rbacService.getRoles(), rbacService.getAllPermissions()]);
-      setRoles(r);
-      setPermissions(p);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
+    if (rolesData) setRoles(rolesData);
+    if (permsData) setPermissions(permsData);
+  }, [rolesData, permsData]);
 
   const openCreate = () => {
     setEditingRole(null);
@@ -68,7 +64,8 @@ export const RolesPermissionsPage: React.FC = () => {
         await rbacService.createRole(payload);
       }
       setModalOpen(false);
-      await loadData();
+     queryClient.invalidateQueries({ queryKey: ['roles'] });
+      setModalOpen(false);
     } catch (e) {
       console.error(e);
     } finally {
@@ -76,21 +73,21 @@ export const RolesPermissionsPage: React.FC = () => {
     }
   };
 
-const { error } = useToast();
+
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this role?')) return;
     try {
-      await rbacService.deleteRole(id);
-      await loadData();
+     await rbacService.deleteRole(id);
+      queryClient.invalidateQueries({ queryKey: ['roles'] });
     } catch (e: any) {
       error(e.response?.data?.error || 'Cannot delete role');
     }
   };
   const handleClone = async (id: string) => {
     try {
-      await rbacService.cloneRole(id);
-      await loadData();
+     await rbacService.cloneRole(id);
+      queryClient.invalidateQueries({ queryKey: ['roles'] });
     } catch (e) {
       console.error(e);
     }
@@ -159,9 +156,30 @@ const { error } = useToast();
       </div>
 
       {/* Roles Grid */}
-      {loading ? (
-        <div className="flex items-center justify-center h-40">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+    {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="bg-card border border-border rounded-2xl p-5 space-y-4 animate-pulse">
+              <div className="space-y-2">
+                <div className="h-4 w-32 bg-muted rounded-md" />
+                <div className="h-3 w-48 bg-muted rounded-md" />
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="h-3 w-24 bg-muted rounded-md" />
+                <div className="h-3 w-16 bg-muted rounded-md" />
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {Array.from({ length: 5 }).map((_, j) => (
+                  <div key={j} className="h-5 w-20 bg-muted rounded-full" />
+                ))}
+              </div>
+              <div className="flex items-center gap-2 pt-1 border-t border-border/50">
+                <div className="h-7 w-14 bg-muted rounded-lg" />
+                <div className="h-7 w-16 bg-muted rounded-lg" />
+                <div className="h-7 w-16 bg-muted rounded-lg ml-auto" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

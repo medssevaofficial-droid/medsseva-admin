@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { usePaymentSummaryQuery, usePaymentsQuery, useRefundsQuery, useSettlementsQuery } from '@/hooks/useAdminQueries';
 import { useAppSelector, useAppDispatch } from '../redux/hooks';
 import {
   fetchSummary,
@@ -33,12 +34,15 @@ export const PaymentsPage: React.FC = () => {
 
   const [settlementSubmitting, setSettlementSubmitting] = useState<string | null>(null);
 
-  useEffect(() => {
-    dispatch(fetchSummary());
-    dispatch(fetchPayments({}));
-    dispatch(fetchRefunds(undefined));
-    dispatch(fetchSettlements(undefined));
-  }, [dispatch]);
+ usePaymentSummaryQuery();
+  usePaymentsQuery({});
+  useRefundsQuery(undefined);
+  useSettlementsQuery(undefined);
+
+usePaymentSummaryQuery();
+  usePaymentsQuery({});
+  useRefundsQuery(undefined);
+  useSettlementsQuery(undefined);
 
   const handleOpenRefundModal = (paymentId: string, amount: number, bookingCode: string) => {
     setRefundForm({ amount: String(amount), reason: '', approvalNotes: '' });
@@ -115,49 +119,63 @@ export const PaymentsPage: React.FC = () => {
           <p className="text-sm text-muted-foreground">Enterprise payment management, franchise commissions, and audit gateway.</p>
         </div>
       </div>
+<div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+        {loading && !summary ? (
+          <>
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="bg-card border border-border p-5 rounded-2xl shadow-sm flex items-center gap-4 animate-pulse">
+                <div className="h-12 w-12 bg-muted rounded-xl shrink-0" />
+                <div className="space-y-2">
+                  <div className="h-2.5 bg-muted rounded w-28" />
+                  <div className="h-7 bg-muted rounded w-20" />
+                </div>
+              </div>
+            ))}
+          </>
+        ) : (
+          <>
+            <div className="bg-card border border-border p-5 rounded-2xl shadow-sm flex items-center gap-4">
+              <div className="h-12 w-12 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl flex items-center justify-center">
+                <ArrowUpRight className="h-6 w-6" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Total Invoiced Assets</div>
+                <div className="text-2xl font-black text-foreground mt-0.5">₹{(summary?.totalCollected || 0).toLocaleString('en-IN')}</div>
+              </div>
+            </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-        <div className="bg-card border border-border p-5 rounded-2xl shadow-sm flex items-center gap-4">
-          <div className="h-12 w-12 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl flex items-center justify-center">
-            <ArrowUpRight className="h-6 w-6" />
-          </div>
-          <div>
-            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Total Invoiced Assets</div>
-            <div className="text-2xl font-black text-foreground mt-0.5">₹{(summary?.totalCollected || 0).toLocaleString('en-IN')}</div>
-          </div>
-        </div>
+            <div className="bg-card border border-border p-5 rounded-2xl shadow-sm flex items-center gap-4">
+              <div className="h-12 w-12 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl flex items-center justify-center">
+                <Clock className="h-6 w-6" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Pending Payments</div>
+                <div className="text-2xl font-black text-foreground mt-0.5">₹{(summary?.totalPending || 0).toLocaleString('en-IN')}</div>
+              </div>
+            </div>
 
-        <div className="bg-card border border-border p-5 rounded-2xl shadow-sm flex items-center gap-4">
-          <div className="h-12 w-12 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl flex items-center justify-center">
-            <Clock className="h-6 w-6" />
-          </div>
-          <div>
-            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Pending Payments</div>
-            <div className="text-2xl font-black text-foreground mt-0.5">₹{(summary?.totalPending || 0).toLocaleString('en-IN')}</div>
-          </div>
-        </div>
+            <div className="bg-card border border-border p-5 rounded-2xl shadow-sm flex items-center gap-4">
+              <div className="h-12 w-12 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl flex items-center justify-center">
+                <Clock className="h-6 w-6" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Pending Commission Liabilities</div>
+                <div className="text-2xl font-black text-foreground mt-0.5">₹{(summary?.pendingSettlements || 0).toLocaleString('en-IN')}</div>
+              </div>
+            </div>
 
-        <div className="bg-card border border-border p-5 rounded-2xl shadow-sm flex items-center gap-4">
-          <div className="h-12 w-12 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl flex items-center justify-center">
-            <Clock className="h-6 w-6" />
-          </div>
-          <div>
-            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Pending Commission Liabilities</div>
-            <div className="text-2xl font-black text-foreground mt-0.5">₹{(summary?.pendingSettlements || 0).toLocaleString('en-IN')}</div>
-          </div>
-        </div>
-
-        <div className="bg-card border border-border p-5 rounded-2xl shadow-sm flex items-center gap-4">
-          <div className="h-12 w-12 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl flex items-center justify-center">
-            <RefreshCcw className="h-6 w-6" />
-          </div>
-          <div>
-            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Processed Reversals</div>
-            <div className="text-2xl font-black text-foreground mt-0.5">₹{(summary?.totalRefunded || 0).toLocaleString('en-IN')}</div>
-          </div>
-        </div>
+            <div className="bg-card border border-border p-5 rounded-2xl shadow-sm flex items-center gap-4">
+              <div className="h-12 w-12 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl flex items-center justify-center">
+                <RefreshCcw className="h-6 w-6" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Processed Reversals</div>
+                <div className="text-2xl font-black text-foreground mt-0.5">₹{(summary?.totalRefunded || 0).toLocaleString('en-IN')}</div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
-
       <div className="flex gap-1.5 border-b border-border">
         <button
           onClick={() => setActiveTab('ledger')}
@@ -183,10 +201,34 @@ export const PaymentsPage: React.FC = () => {
       </div>
 
       <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
-        {loading && (
-          <div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
-            <Loader2 className="h-5 w-5 animate-spin" />
-            <span className="text-sm">Loading financial data...</span>
+    {loading && (
+          <div className="overflow-x-auto animate-pulse">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-muted/50 border-b border-border">
+                <tr>
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => (
+                    <th key={i} className="px-6 py-4">
+                      <div className="h-2.5 bg-muted rounded w-16" />
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {[1, 2, 3, 4, 5, 6, 7].map(i => (
+                  <tr key={i}>
+                    <td className="px-6 py-4"><div className="h-3 bg-muted rounded w-20" /></td>
+                    <td className="px-6 py-4"><div className="h-3 bg-muted rounded w-24" /></td>
+                    <td className="px-6 py-4"><div className="h-3 bg-muted rounded w-28" /></td>
+                    <td className="px-6 py-4"><div className="h-5 bg-muted rounded w-16" /></td>
+                    <td className="px-6 py-4"><div className="h-3 bg-muted rounded w-14" /></td>
+                    <td className="px-6 py-4"><div className="h-3 bg-muted rounded w-28" /></td>
+                    <td className="px-6 py-4 text-center"><div className="h-5 bg-muted rounded-full w-20 mx-auto" /></td>
+                    <td className="px-6 py-4 text-right"><div className="h-3 bg-muted rounded w-16 ml-auto" /></td>
+                    <td className="px-6 py-4 text-right"><div className="h-3 bg-muted rounded w-16 ml-auto" /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
 

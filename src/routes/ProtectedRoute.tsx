@@ -26,8 +26,17 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const [sessionChecked, setSessionChecked] = useState(false);
   const hasFetched = useRef(false);
 
-  useEffect(() => {
-    if (!isAuthenticated || !token || hasFetched.current) {
+useEffect(() => {
+    const storedToken = localStorage.getItem('medsseva_token');
+    const expiry = localStorage.getItem('medsseva_token_expiry');
+
+    if (expiry && Date.now() > Number(expiry)) {
+      dispatch(logout());
+      setSessionChecked(true);
+      return;
+    }
+
+    if (!isAuthenticated || !storedToken || hasFetched.current) {
       setSessionChecked(true);
       return;
     }
@@ -45,7 +54,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         setSessionChecked(true);
       });
   }, []);
-
   if (!isAuthenticated || !user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }

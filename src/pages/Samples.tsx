@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useSampleQueueQuery } from '@/hooks/useAdminQueries';
 import { sampleService } from '../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -91,6 +92,13 @@ export const SamplesPage: React.FC = () => {
 
   const socketRef = useRef<any>(null);
 
+const { data: queueData, isLoading: queueLoading } = useSampleQueueQuery();
+
+  useEffect(() => {
+    if (queueData) { setBookings(queueData); setError(null); }
+    if (!queueLoading) setLoading(false);
+  }, [queueData, queueLoading]);
+
   const fetchQueue = useCallback(async () => {
     try {
       const data = await sampleService.getQueue();
@@ -104,8 +112,7 @@ export const SamplesPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    fetchQueue();
-
+    if (!queueData) fetchQueue();
     const token = localStorage.getItem('medsseva_token');
     if (token) {
       const socket = socketIO(import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000', {
@@ -195,10 +202,69 @@ export const SamplesPage: React.FC = () => {
     return types.size > 0 ? Array.from(types) : ['Blood (EDTA Tube)'];
   };
 
-  if (loading) {
+if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+      <div className="space-y-6 pb-12 animate-pulse">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="space-y-2">
+            <div className="h-7 bg-muted rounded w-72" />
+            <div className="h-4 bg-muted rounded w-96" />
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-9 w-9 bg-muted rounded-lg" />
+            <div className="h-9 w-72 bg-muted rounded-lg" />
+          </div>
+        </div>
+
+        <div className="bg-slate-100 border border-slate-200 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex gap-3 items-center">
+            <div className="h-10 w-10 bg-muted rounded-xl" />
+            <div className="space-y-2">
+              <div className="h-3 bg-muted rounded w-40" />
+              <div className="h-2.5 bg-muted rounded w-56" />
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <div className="h-6 w-28 bg-muted rounded" />
+            <div className="h-6 w-36 bg-muted rounded" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          {[
+            { accent: 'bg-emerald-100', label: 'bg-emerald-200', bar: 'border-emerald-200' },
+            { accent: 'bg-indigo-100', label: 'bg-indigo-200', bar: 'border-indigo-200' },
+            { accent: 'bg-sky-100', label: 'bg-sky-200', bar: 'border-sky-200' },
+          ].map((col, ci) => (
+            <div key={ci} className="bg-card border rounded-2xl overflow-hidden shadow-sm h-[650px] flex flex-col">
+              <div className={`${col.accent} border-b p-4 flex justify-between items-center`}>
+                <div className="h-3.5 bg-muted rounded w-36" />
+                <div className={`h-5 w-6 ${col.label} rounded-full`} />
+              </div>
+              <div className="flex-1 p-4 space-y-3 bg-slate-50/30">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className={`bg-card border ${col.bar} rounded-xl p-3.5 shadow-sm space-y-3`}>
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-1.5">
+                        <div className="h-3 bg-muted rounded w-28" />
+                        <div className="h-2.5 bg-muted rounded w-20" />
+                      </div>
+                      <div className="h-4 w-12 bg-muted rounded" />
+                    </div>
+                    <div className="flex gap-1">
+                      <div className="h-4 w-20 bg-muted rounded" />
+                      <div className="h-4 w-16 bg-muted rounded" />
+                    </div>
+                    <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+                      <div className="h-2.5 w-16 bg-muted rounded" />
+                      <div className="h-2.5 w-16 bg-muted rounded" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

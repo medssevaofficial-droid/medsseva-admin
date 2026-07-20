@@ -52,7 +52,7 @@ const filteredNavItems = NAVIGATION_ITEMS.filter((item) => {
   return (
     <div className="min-h-screen bg-background flex text-foreground overflow-hidden selection:bg-primary/20">
       
-      {/* 🖥️ Desktop Sidebar Navigation */}
+   
       <motion.aside 
         animate={{ width: isSidebarOpen ? 260 : 80 }}
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
