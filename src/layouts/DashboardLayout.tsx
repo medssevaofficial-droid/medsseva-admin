@@ -13,20 +13,72 @@ import {
   HeartPulse, 
   ChevronRight,
   User2,    
-  ArrowRightLeft
+  ArrowRightLeft,
+  RefreshCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/utils/cn';
-
+import { useQueryClient } from '@tanstack/react-query';
+import { useCallback, useState as useRefreshState } from 'react';
+import { useToast } from '@/components/Toast';
 export const DashboardLayout: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   
-  const { user } = useAppSelector((state) => state.auth);
+const { user } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
   const location = useLocation();
   const navigate = useNavigate();
+const queryClient = useQueryClient();
+  const [isRefreshing, setIsRefreshing] = useRefreshState(false);
+  const { success: toastSuccess, error: toastError } = useToast();
+
+  const ROUTE_QUERY_KEYS: Record<string, string[][]> = {
+    '/users': [['users']],
+    '/admin-users': [['adminUsers']],
+    '/bookings': [['bookings']],
+    '/tests': [['tests']],
+    '/packages': [['packages']],
+    '/reports': [['reports'], ['bookingsForReport']],
+    '/coupons': [['coupons'], ['couponAnalytics']],
+    '/payments': [['payments'], ['refunds'], ['settlements'], ['paymentSummary']],
+    '/branches': [['branches']],
+    '/inventory': [['inventory'], ['inventoryTransactions'], ['inventorySuppliers'], ['inventoryAnalytics']],
+    '/partners': [['partners']],
+    '/samples': [['sampleQueue']],
+    '/analytics': [['analyticsDashboard']],
+    '/logs': [['auditLogs'], ['apiLogs']],
+    '/notifications': [['notificationLogs']],
+    '/prescriptions': [['prescriptions']],
+    '/cms': [['cmsBanners'], ['cmsConfig'], ['cmsAlerts'], ['cmsPages'], ['cmsAuditLogs']],
+    '/roles': [['roles'], ['allPermissions']],
+    '/support': [['supportConversations']],
+  };
+
+  const handleRefresh = useCallback(async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      const matchedKeys = Object.entries(ROUTE_QUERY_KEYS).find(([route]) =>
+        location.pathname === route || location.pathname.startsWith(route + '/')
+      );
+if (matchedKeys) {
+        await Promise.all(
+          matchedKeys[1].map((key) =>
+            queryClient.refetchQueries({ queryKey: key, type: 'active' })
+          )
+        );
+      } else {
+        await queryClient.refetchQueries({ type: 'active' });
+      }
+     toastSuccess('Data refreshed successfully.');
+    } catch {
+      toastError('Failed to refresh data.');
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [isRefreshing, location.pathname, queryClient]);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -212,11 +264,19 @@ const filteredNavItems = NAVIGATION_ITEMS.filter((item) => {
             </div>
 
          
+    <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              title="Refresh current page data"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-primary/40 bg-primary/8 hover:bg-primary/15 text-primary font-semibold text-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed select-none"
+            >
+              <RefreshCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin")} />
+              <span className="hidden sm:inline">{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+            </button>
             <button className="relative p-2 rounded-xl border border-border/60 hover:border-border hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-all">
               <Bell className="w-[19px] h-[19px]" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full border border-card" />
             </button>
-
       
             <div className="w-px h-6 bg-border/60 hidden md:block mx-0.5" />
 

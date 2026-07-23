@@ -136,7 +136,7 @@ const { data: adminUsersData } = useAdminUsersQuery();
         if (data && Array.isArray(data)) {
           const mapped = data
             .filter((u: any) => u.role === 'USER')
-            .map((u: any) => ({
+        .map((u: any) => ({
               id: u.id || `pat-${Math.floor(1000 + Math.random() * 9000)}`,
               name: u.name,
               email: u.email || `${u.mobile}@medsseva.com`,
@@ -145,6 +145,9 @@ const { data: adminUsersData } = useAdminUsersQuery();
               status: 'active' as const,
               avatarUrl: u.avatarUrl || undefined,
               uhid: u.uhid,
+              dob: u.dob || undefined,
+              gender: u.gender || undefined,
+              bloodGroup: u.bloodGroup || undefined,
               familyMembers: u.familyMembers,
             }));
           setBackendPatients(mapped);
@@ -176,7 +179,7 @@ const handleRegisterUser = (e: React.FormEvent) => {
     e.preventDefault();
     window.location.href = '/admin-users';
   };
-  // Adding both dynamic backend patients and mock Patients
+
 const displayList = ([...adminUsers, ...backendPatients, ...partners] as User[]).filter(user => {
     if (!user || !user.name) return false;
     const matchesSearch = user.name.toLowerCase().includes(search.toLowerCase()) || 
@@ -370,8 +373,7 @@ if (pageLoading) {
                   </span>
                 </div>
 
-                {/* User Metadata */}
-                <div className="space-y-1.5 text-xs text-muted-foreground">
+             <div className="space-y-1.5 text-xs text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <Mail className="h-3.5 w-3.5" />
                     <span>{user.email}</span>
@@ -380,6 +382,24 @@ if (pageLoading) {
                     <Phone className="h-3.5 w-3.5" />
                     <span>{user.phone}</span>
                   </div>
+                  {isRealPatient && (user as any).gender && (
+                    <div className="flex items-center gap-2">
+                      <UserCircle2 className="h-3.5 w-3.5" />
+                      <span>{(user as any).gender}</span>
+                    </div>
+                  )}
+                  {isRealPatient && (user as any).dob && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-muted-foreground">DOB:</span>
+                      <span>{(user as any).dob}</span>
+                    </div>
+                  )}
+                  {isRealPatient && (user as any).bloodGroup && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-rose-500">●</span>
+                      <span className="font-bold text-rose-600">{(user as any).bloodGroup}</span>
+                    </div>
+                  )}
               {user.franchiseId && (
                     <div className="flex items-center gap-2 text-amber-700 font-medium">
                       <Briefcase className="h-3.5 w-3.5" />

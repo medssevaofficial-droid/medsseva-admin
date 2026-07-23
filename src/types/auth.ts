@@ -22,7 +22,9 @@ export interface User {
   status: 'active' | 'inactive';
   franchiseId?: string;
   uhid?: string;
-  // RBAC fields
+  dob?: string;
+  gender?: string;
+  bloodGroup?: string;
   adminRole?: string | null;
   adminRoleSlug?: string | null;
   permissions?: string[];
@@ -35,7 +37,6 @@ export interface User {
     gender: string;
   }[];
 }
-
 export interface AuthState {
   user: User | null;
   token: string | null;

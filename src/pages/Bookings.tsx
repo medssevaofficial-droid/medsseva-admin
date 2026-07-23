@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAppSelector, useAppDispatch } from '../redux/hooks';
-import { updateBookingStatus, assignPersonnel, assignPartnerLocal, updateBookingStatusAsync } from '../redux/slices/bookingSlice';
+import { updateBookingStatus, assignPersonnel, assignPartnerLocal, updateBookingStatusAsync, fetchBookings } from '../redux/slices/bookingSlice';
+
 import { useBookingsQuery } from '@/hooks/useAdminQueries';
 import { Booking, BookingStatus } from '../types';
 
@@ -26,11 +27,12 @@ import {
   Building2,
   Star
 } from 'lucide-react';
+
 import { cn } from '../utils/cn';
 import toast from 'react-hot-toast';
 import { ReportPDFDocument } from '../components/ReportPDFDocument';
 import { triggerReportShare } from '../utils/pdfGenerator';
-import { processPayment } from '../utils/paymentModule';
+import { processPayment } from '../utils/PaymentModule';
 import { testService } from '../services/api';
 
 const STATUS_COLORS: Record<BookingStatus, { bg: string; text: string; border: string }> = {
@@ -74,12 +76,7 @@ const [isLabActioning, setIsLabActioning] = useState(false);
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
 const [isLabStatusUpdating, setIsLabStatusUpdating] = useState(false);
-const [isGeneratingQR, setIsGeneratingQR] = useState(false);
-  const [paymentLinkUrl, setPaymentLinkUrl] = useState<string | null>(null);
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-  const [isPollingPayment, setIsPollingPayment] = useState(false);
-  const [showQRModal, setShowQRModal] = useState(false);
-  const pollingRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+const [isCollectingPayment, setIsCollectingPayment] = useState(false);
 
   React.useEffect(() => {
     Promise.all([
@@ -284,51 +281,31 @@ const handleMarkPayment = async (bookingId: string, paymentStatus: 'SUCCESS', pa
     setIsUpdatingPayment(false);
   };
 
-const handleGenerateQR = async () => {
+const handleCollectPayment = async () => {
     if (!selectedBooking) return;
-    setIsGeneratingQR(true);
-    setPaymentLinkUrl(null);
-    setQrDataUrl(null);
-    try {
-      const result = await testService.generatePaymentLink(selectedBooking.id);
-      const url = result.paymentLinkUrl;
-      setPaymentLinkUrl(url);
-
-      const QRCode = await import('qrcode');
-      const dataUrl = await QRCode.toDataURL(url, {
-        width: 280,
-        margin: 2,
-        color: { dark: '#000000', light: '#ffffff' },
-        errorCorrectionLevel: 'H',
-      });
-      setQrDataUrl(dataUrl);
-      setShowQRModal(true);
-
-      setIsPollingPayment(true);
-      if (pollingRef.current) clearInterval(pollingRef.current);
-      const bookingId = selectedBooking.id;
-      pollingRef.current = setInterval(async () => {
-        try {
-          const status = await testService.checkPaymentLinkStatus(bookingId);
-          if (status.paymentStatus === 'SUCCESS') {
-            if (pollingRef.current) clearInterval(pollingRef.current);
-            setIsPollingPayment(false);
-            setShowQRModal(false);
-            setPaymentLinkUrl(null);
-            setQrDataUrl(null);
-            setSelectedBooking((prev: any) => prev ? { ...prev, paymentStatus: 'SUCCESS' } : prev);
-            toast.success('✓ Payment confirmed! Proceed to sample collection.');
-          }
-        } catch {}
-      }, 5000);
-      setTimeout(() => {
-        if (pollingRef.current) clearInterval(pollingRef.current);
-        setIsPollingPayment(false);
-      }, 300000);
-    } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Failed to generate payment QR.');
-    }
-    setIsGeneratingQR(false);
+    setIsCollectingPayment(true);
+    await processPayment({
+      bookingId: selectedBooking.id,
+      amount: selectedBooking.totalAmount,
+      bookingCode: selectedBooking.bookingCode,
+      customerName: selectedBooking.patient.name,
+      customerPhone: selectedBooking.patient.phone,
+      description: `MedSeva Booking ${selectedBooking.bookingCode}`,
+      onSuccess: async () => {
+        setIsCollectingPayment(false);
+        setSelectedBooking((prev: any) => prev ? { ...prev, paymentStatus: 'SUCCESS' } : prev);
+        toast.success('✓ Payment confirmed! Proceed to sample collection.');
+        dispatch(fetchBookings() as any);
+      },
+      onFailure: (error) => {
+        setIsCollectingPayment(false);
+        const description = error?.error?.description;
+        if (description) {
+          toast.error('Payment was not completed. You can retry or collect cash.');
+        }
+      },
+    });
+    setIsCollectingPayment(false);
   };
   const handleStatusChange = async (status: BookingStatus) => {
     if (!selectedBooking) return;
@@ -670,7 +647,7 @@ const getStaffName = (id?: string) => {
                       selectedBooking.status !== 'Pending' && (
                       <div className="w-full mb-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                         <div className="text-xs font-bold text-amber-700 mb-2">
-                          Cash payment pending — Lab assistant must collect before sample collection.
+                          Cash payment pending: Lab assistant must collect before sample collection.
                         </div>
                         <button
                           disabled={isUpdatingPayment}
@@ -709,28 +686,19 @@ const getStaffName = (id?: string) => {
                         <div className="text-xs font-bold text-violet-700 flex items-center gap-1">
                           <CheckCircle2 className="h-3.5 w-3.5" /> Patient has reached the lab
                         </div>
-                        {(selectedBooking as any).paymentStatus !== 'SUCCESS' ? (
+                   {(selectedBooking as any).paymentStatus !== 'SUCCESS' ? (
                           <>
                             <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
-                              Payment pending — Generate QR for patient to scan and pay.
+                              Payment pending: Open Razorpay Checkout for the patient to pay.
                             </div>
-                    {paymentLinkUrl ? (
-                              <button
-                                onClick={() => setShowQRModal(true)}
-                                className="w-full px-3 py-2 bg-[#006d6f] text-white rounded text-xs font-bold hover:bg-[#00595b] flex items-center justify-center gap-2"
-                              >
-                                <Activity className="h-3.5 w-3.5" /> View Payment QR
-                                {isPollingPayment && <span className="ml-1 opacity-70">· Checking...</span>}
-                              </button>
-                            ) : (
-                              <button
-                                disabled={isGeneratingQR}
-                                onClick={handleGenerateQR}
-                                className="px-3 py-1.5 bg-[#006d6f] text-white rounded text-xs font-bold hover:bg-[#00595b] disabled:opacity-50"
-                              >
-                                {isGeneratingQR ? 'Generating...' : 'Collect Payment (QR)'}
-                              </button>
-                            )}
+                            <button
+                              disabled={isCollectingPayment}
+                              onClick={handleCollectPayment}
+                              className="px-3 py-1.5 bg-[#006d6f] text-white rounded text-xs font-bold hover:bg-[#00595b] disabled:opacity-50 flex items-center gap-1.5"
+                            >
+                              <Activity className="h-3.5 w-3.5" />
+                              {isCollectingPayment ? 'Opening Checkout...' : 'Collect Payment'}
+                            </button>
                             <button
                               disabled={isUpdatingPayment}
                               onClick={() => handleMarkPayment(selectedBooking.id, 'SUCCESS', 'CASH')}
@@ -1093,96 +1061,7 @@ const getStaffName = (id?: string) => {
       </AnimatePresence>
 
    
-   <AnimatePresence>
-        {showQRModal && selectedBooking && qrDataUrl && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.6 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black z-[70] cursor-pointer"
-              onClick={() => setShowQRModal(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.92, y: 24 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.92, y: 24 }}
-              transition={{ type: 'spring', damping: 22, stiffness: 260 }}
-              className="fixed inset-0 z-[80] flex items-center justify-center p-4 pointer-events-none"
-            >
-              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm pointer-events-auto overflow-hidden">
-                <div className="bg-[#006d6f] px-6 pt-6 pb-5 text-white">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="text-[10px] font-black uppercase tracking-widest opacity-70">MedSeva · Lab Payment</div>
-                    <button
-                      onClick={() => setShowQRModal(false)}
-                      className="p-1 rounded-full hover:bg-white/20 transition-colors"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                  <div className="text-2xl font-black">₹{selectedBooking.totalAmount}</div>
-                  <div className="text-sm font-semibold opacity-80 mt-0.5">Amount Payable</div>
-                </div>
 
-                <div className="px-6 py-4 border-b border-gray-100 grid grid-cols-2 gap-3 text-xs">
-                  <div>
-                    <div className="text-gray-400 font-semibold uppercase tracking-wide mb-0.5">Booking ID</div>
-                    <div className="font-bold text-gray-800">{selectedBooking.bookingCode}</div>
-                  </div>
-                  <div>
-                    <div className="text-gray-400 font-semibold uppercase tracking-wide mb-0.5">Patient</div>
-                    <div className="font-bold text-gray-800 truncate">{selectedBooking.patient.name}</div>
-                  </div>
-                  <div>
-                    <div className="text-gray-400 font-semibold uppercase tracking-wide mb-0.5">Lab Branch</div>
-                    <div className="font-bold text-gray-800 truncate">{(selectedBooking as any).branch?.name || (selectedBooking as any).address?.city || '—'}</div>
-                  </div>
-                  <div>
-                    <div className="text-gray-400 font-semibold uppercase tracking-wide mb-0.5">Status</div>
-                    <div className="flex items-center gap-1 font-bold text-amber-600">
-                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse inline-block" />
-                      Waiting for payment
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-col items-center px-6 py-5">
-                  <div className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-3">
-                    Scan with any UPI app
-                  </div>
-                  <div className="p-3 bg-white border-2 border-[#006d6f]/20 rounded-xl shadow-inner">
-                    <img
-                      src={qrDataUrl}
-                      alt="Razorpay Payment QR"
-                      className="w-56 h-56 block"
-                      draggable={false}
-                    />
-                  </div>
-                  <div className="flex items-center gap-4 mt-4 opacity-40 grayscale">
-                    {['GPay', 'PhonePe', 'Paytm', 'BHIM'].map(app => (
-                      <span key={app} className="text-[10px] font-black text-gray-500 uppercase tracking-wide">{app}</span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="px-6 pb-5">
-                  {isPollingPayment ? (
-                    <div className="flex items-center justify-center gap-2 py-2.5 px-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-xs font-bold">
-                      <Activity className="h-3.5 w-3.5 animate-spin" />
-                      Auto-checking payment every 5 seconds...
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center gap-2 py-2.5 px-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-400 text-xs font-semibold">
-                      Payment check expired — regenerate QR if needed
-                    </div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
 
       {selectedBooking && activeReport && (
         <div className="fixed top-0 left-[-9999px] pointer-events-none opacity-0 overflow-hidden z-[-9999]">

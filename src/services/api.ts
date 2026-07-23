@@ -106,11 +106,11 @@ updateLabStatus: async (id: string, status: string) => {
     const response = await api.patch(`/bookings/${id}/update-lab-status`, { status });
     return response.data;
   },
-  generatePaymentLink: async (id: string) => {
+initiateRazorpayCheckout: async (id: string) => {
     const response = await api.post(`/bookings/${id}/payment-link`);
     return response.data;
   },
-  checkPaymentLinkStatus: async (id: string) => {
+  checkPaymentStatus: async (id: string) => {
     const response = await api.get(`/bookings/${id}/payment-link/status`);
     return response.data;
   },
@@ -169,9 +169,13 @@ export const financeService = {
   getPayments: (params?: { page?: number; limit?: number; status?: string; from?: string; to?: string }) =>
     api.get('/finance/payments', { params }).then(r => r.data),
   getPaymentById: (id: string) => api.get(`/finance/payments/${id}`).then(r => r.data),
-  createOrder: (bookingId: string) => api.post('/finance/payments/create-order', { bookingId }).then(r => r.data),
-  verifyPayment: (data: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string; bookingId: string }) =>
-    api.post('/finance/payments/verify', data).then(r => r.data),
+createOrder: (bookingId: string) => api.post('/finance/payments/create-order', { bookingId }).then(r => r.data),
+  verifyPayment: (data: {
+    razorpay_order_id: string;
+    razorpay_payment_id: string;
+    razorpay_signature: string;
+    bookingId: string;
+  }) => api.post('/finance/payments/verify', data).then(r => r.data),
   getRefunds: (status?: string) => api.get('/finance/refunds', { params: status ? { status } : {} }).then(r => r.data),
   requestRefund: (data: { paymentId: string; amount: number; reason: string; approvalNotes?: string }) =>
     api.post('/finance/refunds', data).then(r => r.data),
