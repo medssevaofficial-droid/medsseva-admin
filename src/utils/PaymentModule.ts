@@ -33,12 +33,12 @@ export const processPayment = async (options: PaymentOptions): Promise<void> => 
     return;
   }
 
-let orderData: { orderId: string; amount: number; currency: string };
+let orderData: { razorpayOrderId: string; amount: number; currency: string };
   let keyId: string;
-  try {
+try {
     const [configRes, orderRes] = await Promise.all([
-      api.get('/finance/config'),
-      api.post('/finance/payments/create-order', { bookingId }),
+      api.get('/payments/config'),
+      api.post('/payments/create-order', { bookingId }),
     ]);
     keyId = configRes.data.keyId;
     orderData = orderRes.data;
@@ -54,7 +54,7 @@ let orderData: { orderId: string; amount: number; currency: string };
     currency: orderData.currency || 'INR',
     name: 'MedSeva',
     description: description,
-    order_id: orderData.orderId,
+    order_id: orderData.razorpayOrderId,
     prefill: {
       name: customerName,
       contact: customerPhone,
@@ -69,7 +69,7 @@ let orderData: { orderId: string; amount: number; currency: string };
     },
     handler: async (response: any) => {
       try {
-        await api.post('/finance/payments/verify', {
+await api.post('/payments/verify', {
           razorpay_order_id: response.razorpay_order_id,
           razorpay_payment_id: response.razorpay_payment_id,
           razorpay_signature: response.razorpay_signature,

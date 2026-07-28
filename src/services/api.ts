@@ -169,17 +169,22 @@ export const financeService = {
   getPayments: (params?: { page?: number; limit?: number; status?: string; from?: string; to?: string }) =>
     api.get('/finance/payments', { params }).then(r => r.data),
   getPaymentById: (id: string) => api.get(`/finance/payments/${id}`).then(r => r.data),
-createOrder: (bookingId: string) => api.post('/finance/payments/create-order', { bookingId }).then(r => r.data),
+getConfig: () => api.get('/payments/config').then(r => r.data),
+  createOrder: (bookingId: string) => api.post('/payments/create-order', { bookingId }).then(r => r.data),
   verifyPayment: (data: {
     razorpay_order_id: string;
     razorpay_payment_id: string;
     razorpay_signature: string;
     bookingId: string;
-  }) => api.post('/finance/payments/verify', data).then(r => r.data),
+  }) => api.post('/payments/verify', data).then(r => r.data),
+  getInvoice: (bookingId: string) => api.get(`/payments/invoice/${bookingId}`).then(r => r.data),
+  regenerateInvoice: (bookingId: string) => api.post(`/payments/invoice/${bookingId}/regenerate`).then(r => r.data),
   getRefunds: (status?: string) => api.get('/finance/refunds', { params: status ? { status } : {} }).then(r => r.data),
   requestRefund: (data: { paymentId: string; amount: number; reason: string; approvalNotes?: string }) =>
     api.post('/finance/refunds', data).then(r => r.data),
-  approveRefund: (id: string) => api.post(`/finance/refunds/${id}/approve`).then(r => r.data),
+approveRefund: (id: string) => api.post(`/finance/refunds/${id}/approve`).then(r => r.data),
+  executeRefund: (paymentId: string, data: { refundType: 'FULL' | 'PARTIAL'; amount?: number; reason: string }) =>
+    api.post(`/finance/payments/${paymentId}/refund`, data).then(r => r.data),
   rejectRefund: (id: string, reason: string) => api.post(`/finance/refunds/${id}/reject`, { reason }).then(r => r.data),
   getSettlements: (status?: string) => api.get('/finance/settlements', { params: status ? { status } : {} }).then(r => r.data),
   generateSettlement: (data: { periodStart: string; periodEnd: string; franchiseName: string; franchiseId?: string; commissionRate?: number }) =>

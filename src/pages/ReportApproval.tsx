@@ -637,21 +637,9 @@ const handleFinalize = async () => {
                 <button onClick={() => setShowSendModal(false)} className="p-1 hover:bg-muted rounded-lg"><X className="h-4 w-4" /></button>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => setSendRecipientType('USER')}
-                  className={cn("p-3 border rounded-xl text-left transition-all", sendRecipientType === 'USER' ? "border-primary bg-primary/5 ring-2 ring-primary/20" : "border-border hover:border-primary/50")}
-                >
-                  <Users className="h-4 w-4 text-primary mb-1" />
-                  <div className="font-bold text-sm">Users</div>
-                </button>
-                <button
-                  onClick={() => setSendRecipientType('PARTNER')}
-                  className={cn("p-3 border rounded-xl text-left transition-all", sendRecipientType === 'PARTNER' ? "border-primary bg-primary/5 ring-2 ring-primary/20" : "border-border hover:border-primary/50")}
-                >
-                  <FlaskConical className="h-4 w-4 text-primary mb-1" />
-                  <div className="font-bold text-sm">Pathology Partners</div>
-                </button>
+      <div className="flex items-center gap-2 px-3 py-2 bg-primary/5 border border-primary/20 rounded-lg">
+                <Users className="h-4 w-4 text-primary" />
+                <span className="font-bold text-sm text-foreground">Send to Patient</span>
               </div>
 
               <div className="relative">

@@ -80,9 +80,23 @@ type VerificationDetails = {
 };
 
 const computeFlag = (value: string, param: ParameterEntry): Flag => {
+  if (!value || value.trim() === '') return 'PENDING';
+
+  if (param.resultType === 'TEXT') {
+    if (!param.interpretation) return 'NORMAL';
+    const expected = param.interpretation.trim().toLowerCase();
+    const actual = value.trim().toLowerCase();
+    return actual === expected ? 'NORMAL' : 'HIGH';
+  }
+
+  if (param.resultType === 'POS_NEG') {
+    const v = value.trim().toLowerCase();
+    return v === 'positive' || v === 'reactive' ? 'HIGH' : 'NORMAL';
+  }
+
   const num = parseFloat(value);
   if (isNaN(num)) return 'PENDING';
-  if (param.referenceRanges.length === 0) return 'PENDING';
+  if (param.referenceRanges.length === 0) return 'NORMAL';
   const r = param.referenceRanges[0];
   const critLow = parseFloat(param.criticalLow);
   const critHigh = parseFloat(param.criticalHigh);
@@ -92,21 +106,78 @@ const computeFlag = (value: string, param: ParameterEntry): Flag => {
   if (num > r.maxRange) return 'HIGH';
   return 'NORMAL';
 };
-
 const buildRangeString = (ranges: RangeEntry[]): string => {
   if (!ranges || ranges.length === 0) return '';
   const r = ranges[0];
   return `${r.minRange} - ${r.maxRange}`;
 };
 
+const parseDbReferenceRanges = (raw: any, gender?: string, age?: number): RangeEntry[] => {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
+
+  const g = (gender || '').toUpperCase();
+  const resolvedGender: 'MALE' | 'FEMALE' | 'ANY' =
+    g === 'MALE' ? 'MALE' : g === 'FEMALE' ? 'FEMALE' : 'ANY';
+
+  const priorityKeys = [
+    resolvedGender === 'MALE' ? 'male' : resolvedGender === 'FEMALE' ? 'female' : null,
+    'general',
+    'normal',
+  ].filter(Boolean) as string[];
+
+  const entries: RangeEntry[] = [];
+
+  for (const key of Object.keys(raw)) {
+    const val = raw[key];
+    if (val && typeof val === 'object' && !('text' in val)) {
+      const min = val.min ?? 0;
+      const max = val.max ?? 0;
+      const entryGender: 'MALE' | 'FEMALE' | 'ANY' =
+        key === 'male' ? 'MALE' : key === 'female' ? 'FEMALE' : 'ANY';
+      entries.push({ gender: entryGender, minAge: 0, maxAge: 120, minRange: min, maxRange: max });
+    }
+  }
+
+  if (entries.length === 0) return [];
+
+  const preferred = priorityKeys.find(k => raw[k] && typeof raw[k] === 'object' && !('text' in raw[k]));
+  if (preferred) {
+    const val = raw[preferred];
+    const entryGender: 'MALE' | 'FEMALE' | 'ANY' =
+      preferred === 'male' ? 'MALE' : preferred === 'female' ? 'FEMALE' : 'ANY';
+    return [{ gender: entryGender, minAge: 0, maxAge: 120, minRange: val.min ?? 0, maxRange: val.max ?? 0 }, ...entries.filter(e => e.gender !== entryGender)];
+  }
+
+  return entries;
+};
+
+const getTextExpectation = (raw: any): string | null => {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  for (const val of Object.values(raw)) {
+    if (val && typeof val === 'object' && 'text' in (val as any)) {
+      return (val as any).text as string;
+    }
+  }
+  return null;
+};
+
 const buildTestGroups = (booking: any): TestGroup[] => {
   const groups: TestGroup[] = [];
   let order = 0;
 
-  const processTest = (test: any) => {
+const processTest = (test: any) => {
     if (!test) return;
     const parameters: ParameterEntry[] = (test.parameters || []).map((p: any) => {
-      const ranges: RangeEntry[] = Array.isArray(p.referenceRanges) ? p.referenceRanges : [];
+      const textExpectation = getTextExpectation(p.referenceRanges);
+      const ranges: RangeEntry[] = parseDbReferenceRanges(
+        p.referenceRanges,
+        booking.patientGender,
+        booking.patientAge
+      );
+      const isTextType = textExpectation !== null;
+      const isPosNeg = isTextType && /reactive|positive|negative/i.test(textExpectation);
+      const resultType: ResultType = isPosNeg ? 'POS_NEG' : isTextType ? 'TEXT' : 'NUMERIC';
       return {
         parameterId: p.id,
         parameterName: p.name,
@@ -114,13 +185,13 @@ const buildTestGroups = (booking: any): TestGroup[] => {
         value: '',
         unit: p.unit || '',
         referenceRanges: ranges,
-        referenceRange: buildRangeString(ranges),
-        resultType: 'NUMERIC' as ResultType,
+        referenceRange: isTextType ? (textExpectation || '') : buildRangeString(ranges),
+        resultType,
         flag: 'PENDING' as Flag,
         isAbnormal: false,
         criticalLow: '',
         criticalHigh: '',
-        interpretation: '',
+        interpretation: textExpectation || '',
         description: '',
         displayOrder: order++,
       };

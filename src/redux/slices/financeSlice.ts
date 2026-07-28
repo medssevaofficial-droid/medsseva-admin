@@ -21,17 +21,19 @@ interface Payment {
   gateway: string;
   status: string;
   invoiceNumber?: string;
+  invoiceUrl?: string;
+  receiptUrl?: string;
   paymentReference?: string;
   branchId?: string;
   paidAt?: string;
   createdAt: string;
   booking?: {
+    id: string;
     bookingCode: string;
     patientName: string;
     branch?: { name: string };
   };
 }
-
 interface Refund {
   id: string;
   paymentId: string;
@@ -122,6 +124,21 @@ export const submitRefundRequest = createAsyncThunk(
   }
 );
 
+export const executeRefundThunk = createAsyncThunk(
+  'finance/executeRefund',
+  async (data: { paymentId: string; refundType: 'FULL' | 'PARTIAL'; amount?: number; reason: string }, { rejectWithValue }) => {
+    try {
+      return await financeService.executeRefund(data.paymentId, {
+        refundType: data.refundType,
+        amount: data.amount,
+        reason: data.reason,
+      });
+    } catch (e: any) {
+      return rejectWithValue(e.response?.data?.error || 'Failed to process refund');
+    }
+  }
+);
+
 export const approveRefundThunk = createAsyncThunk('finance/approveRefund', async (id: string, { rejectWithValue }) => {
   try {
     return await financeService.approveRefund(id);
@@ -174,9 +191,23 @@ const financeSlice = createSlice({
       .addCase(submitRefundRequest.fulfilled, (state, action) => {
         state.refunds.unshift(action.payload);
       })
-      .addCase(approveRefundThunk.fulfilled, (state, action) => {
+  .addCase(approveRefundThunk.fulfilled, (state, action) => {
         const idx = state.refunds.findIndex(r => r.id === action.payload.id);
         if (idx !== -1) state.refunds[idx] = action.payload;
+      })
+      .addCase(executeRefundThunk.fulfilled, (state, action) => {
+        if (action.payload?.refund) {
+          state.refunds.unshift(action.payload.refund);
+        }
+        const paymentId = action.meta.arg.paymentId;
+        const pidx = state.payments.findIndex(p => p.id === paymentId);
+        if (pidx !== -1) {
+          const totalRefunded = (state.payments[pidx] as any).amount;
+          state.payments[pidx] = {
+            ...state.payments[pidx],
+            status: action.payload?.refund?.amount >= totalRefunded ? 'REFUNDED' : 'PARTIALLY_REFUNDED',
+          };
+        }
       })
       .addCase(fetchSettlements.fulfilled, (state, action) => { state.settlements = action.payload; })
       .addCase(processSettlementThunk.fulfilled, (state, action) => {
