@@ -21,11 +21,30 @@ export const fetchPackages = createAsyncThunk('tests/fetchPackages', async () =>
   return response;
 });
 
+function normalizeReferenceRanges(raw: unknown): Array<{
+  gender: 'MALE' | 'FEMALE' | 'ANY';
+  minAge: number;
+  maxAge: number;
+  minRange: number;
+  maxRange: number;
+}> {
+  if (Array.isArray(raw)) return raw;
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) return [raw as any];
+  return [];
+}
+
+function normalizeParameters(params: unknown): any[] {
+  if (!Array.isArray(params)) return [];
+  return params.map((p: any) => ({
+    ...p,
+    referenceRanges: normalizeReferenceRanges(p.referenceRanges),
+  }));
+}
+
 export const fetchTests = createAsyncThunk('tests/fetchTests', async () => {
   const response = await testService.getAllTests();
   return response;
 });
-
 export const updateTest = createAsyncThunk('tests/updateTest', async ({ id, ...data }: any) => {
   const response = await testService.updateTest(id, data);
   return response;
@@ -81,10 +100,10 @@ const testSlice = createSlice({
           reportTimeHours: parseInt(t.reportTime) || 24,
           sampleType: t.sampleType || 'Blood (EDTA Tube)',
           status: t.isActive ? 'active' : 'inactive',
-          parameters: t.parameters ?? [],
+          parameters: normalizeParameters(t.parameters),
         }));
       })
-    .addCase(updateTest.fulfilled, (state, action) => {
+.addCase(updateTest.fulfilled, (state, action) => {
         const updated = {
           ...action.payload,
           code: action.payload.id,
@@ -92,7 +111,7 @@ const testSlice = createSlice({
           reportTimeHours: parseInt(action.payload.reportTime) || 24,
           sampleType: action.payload.sampleType || 'Blood (EDTA Tube)',
           status: action.payload.isActive ? 'active' : 'inactive',
-          parameters: action.payload.parameters ?? [],
+          parameters: normalizeParameters(action.payload.parameters),
         };
         const idx = state.tests.findIndex(t => t.id === updated.id);
         if (idx !== -1) state.tests[idx] = updated;
