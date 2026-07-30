@@ -67,7 +67,7 @@ const SAMPLE_TYPES = [
 ];
 
 const timeAgo = (dateStr: string | null): string => {
-  if (!dateStr) return '—';
+  if (!dateStr) return '-';
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return 'Just now';
@@ -420,7 +420,7 @@ if (loading) {
 
                 <div className="mt-3 bg-emerald-50 text-emerald-800 border border-emerald-100 text-[9px] font-black px-2 py-1 rounded flex items-center gap-1">
                   <CheckSquare className="h-3 w-3 text-emerald-600" />
-                  Condition: {booking.sample?.condition || 'GOOD'} — Cleared
+                  Condition: {booking.sample?.condition || 'GOOD'} - Cleared
                 </div>
 
                 <div className="text-[8px] text-slate-400 font-bold mt-2">
@@ -482,7 +482,7 @@ if (loading) {
                 <div className="mt-3 p-2 bg-sky-50/50 border border-sky-100 rounded-lg flex items-center gap-2">
                   <span className="animate-spin h-3 w-3 border-2 border-sky-600 border-t-transparent rounded-full" />
                   <span className="text-[9px] font-extrabold text-sky-800">
-                    Processing — {booking.sample?.sampleType || 'Sample'}
+                    Processing - {booking.sample?.sampleType || 'Sample'}
                   </span>
                 </div>
 

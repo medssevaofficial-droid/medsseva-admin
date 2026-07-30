@@ -21,14 +21,14 @@ export const canViewModule = (module: string): boolean => {
 };
 
 /**
- * Check multiple permissions (AND logic — all must pass).
+ * Check multiple permissions (AND logic - all must pass).
  */
 export const canAll = (...permissions: string[]): boolean => {
   return permissions.every((p) => can(p));
 };
 
 /**
- * Check multiple permissions (OR logic — at least one must pass).
+ * Check multiple permissions (OR logic - at least one must pass).
  */
 export const canAny = (...permissions: string[]): boolean => {
   return permissions.some((p) => can(p));

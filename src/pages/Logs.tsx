@@ -350,7 +350,7 @@ export const LogsPage: React.FC = () => {
                           )}
                         </td>
                         <td className="px-6 py-4">
-                          <div className="font-bold text-slate-700">{a.user?.name ?? '—'}</div>
+                          <div className="font-bold text-slate-700">{a.user?.name ?? '-'}</div>
                           <div className="text-[9px] text-slate-400 mt-0.5">
                             {a.performedByRole ?? a.user?.role ?? ''}
                           </div>

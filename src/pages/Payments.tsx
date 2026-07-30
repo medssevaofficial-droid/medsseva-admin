@@ -296,13 +296,13 @@ if (executeRefundThunk.fulfilled.match(result)) {
                   return (
                     <>
                       <tr key={tx.id} className="hover:bg-muted/10 cursor-pointer" onClick={() => setExpandedPayment(isExpanded ? null : tx.id)}>
-                        <td className="px-6 py-4 font-mono text-xs font-bold text-foreground">{tx.invoiceNumber || '—'}</td>
+                        <td className="px-6 py-4 font-mono text-xs font-bold text-foreground">{tx.invoiceNumber || '-'}</td>
                         <td className="px-6 py-4 font-medium text-foreground">{tx.booking?.bookingCode || tx.bookingId}</td>
-                        <td className="px-6 py-4 text-muted-foreground">{tx.booking?.patientName || '—'}</td>
+                        <td className="px-6 py-4 text-muted-foreground">{tx.booking?.patientName || '-'}</td>
                         <td className="px-6 py-4">
                           <span className="bg-muted text-foreground text-[10px] font-extrabold px-1.5 py-0.5 border rounded uppercase">{tx.gateway}</span>
                         </td>
-                        <td className="px-6 py-4 text-xs text-muted-foreground uppercase">{tx.method || '—'}</td>
+                        <td className="px-6 py-4 text-xs text-muted-foreground uppercase">{tx.method || '-'}</td>
                         <td className="px-6 py-4 text-xs text-muted-foreground">
                           {tx.paidAt ? new Date(tx.paidAt).toLocaleString() : new Date(tx.createdAt).toLocaleString()}
                         </td>
@@ -541,7 +541,7 @@ if (executeRefundThunk.fulfilled.match(result)) {
                             : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
                         )}
                       >
-                        {type === 'FULL' ? `Full — ₹${refundModal.maxAmount.toLocaleString('en-IN')}` : 'Partial'}
+                        {type === 'FULL' ? `Full - ₹${refundModal.maxAmount.toLocaleString('en-IN')}` : 'Partial'}
                       </button>
                     ))}
                   </div>

@@ -145,7 +145,7 @@ const { user, currentCityId, currentBranchId } = useAppSelector(state => state.a
             Welcome back, {user?.name.split(' ')[0]}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {roleLabels[user?.role || 'super_admin']} — Ready for clinical workflow.
+            {roleLabels[user?.role || 'super_admin']}, Ready for clinical workflow.
           </p>
         </div>
 

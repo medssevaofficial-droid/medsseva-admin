@@ -15,7 +15,7 @@ import {
 import { cn } from '../utils/cn';
 import { useToast, ConfirmDialog } from '../components/Toast';
 
-export const CouponsPage: React.FC = () => {
+export const CouponsPage: React.FC = () => {  
   const dispatch = useAppDispatch();
 const couponState = useAppSelector(state => state.coupons);
 const coupons = couponState?.coupons ?? [];

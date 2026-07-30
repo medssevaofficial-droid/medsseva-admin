@@ -415,11 +415,11 @@ const { data: partnersData, isLoading: partnersQueryLoading } = usePartnersQuery
                   {React.createElement(STATUS_CONFIG[selectedPartner.approvalStatus].icon, { className: 'h-4 w-4' })}
                   {STATUS_CONFIG[selectedPartner.approvalStatus].label}
                   {selectedPartner.rejectionReason && (
-                    <span className="ml-2 font-normal text-xs">— {selectedPartner.rejectionReason}</span>
+                    <span className="ml-2 font-normal text-xs">- {selectedPartner.rejectionReason}</span>
                   )}
                 </div>
 
-                {/* Personal */}
+               
                 <div className="bg-card border border-border rounded-xl p-4 space-y-2">
                   <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Personal Info</h3>
                   <div className="flex items-center gap-2 text-sm">

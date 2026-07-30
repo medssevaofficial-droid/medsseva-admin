@@ -590,7 +590,7 @@ const filteredBookings = useMemo(() => {
                     <div className="font-bold flex items-center gap-2"><AlertTriangle className="h-4 w-4" /> No parameters found for:</div>
                     <ul className="list-disc list-inside space-y-1 text-xs">
                       {[...(selectedBooking?.tests?.map((bt: any) => bt.test) || []), ...(selectedBooking?.packages?.flatMap((bp: any) => bp.package?.testsIncluded?.map((pt: any) => pt.test) || []) || [])].filter(Boolean).map((t: any) => (
-                        <li key={t.id}><span className="font-semibold">{t.name}</span> — go to Test Catalog and add parameters.</li>
+                        <li key={t.id}><span className="font-semibold">{t.name}</span> - go to Test Catalog and add parameters.</li>
                       ))}
                     </ul>
                   </div>
@@ -774,9 +774,9 @@ const filteredBookings = useMemo(() => {
                       onChange={e => setVerification(v => ({ ...v, reportBranchId: e.target.value }))}
                       className="w-full text-sm border border-input rounded-lg px-3 py-2 outline-none focus:border-primary bg-card"
                     >
-                      <option value="">— Select Laboratory Branch —</option>
+                      <option value="">- Select Laboratory Branch -</option>
                       {branches.map(b => (
-                        <option key={b.id} value={b.id}>{b.name} — {b.city}</option>
+                        <option key={b.id} value={b.id}>{b.name} - {b.city}</option>
                       ))}
                     </select>
 

@@ -9,7 +9,7 @@ export const UnauthorizedPage: React.FC = () => {
       <div className="w-16 h-16 rounded-2xl bg-destructive/10 flex items-center justify-center">
         <ShieldX className="w-8 h-8 text-destructive" />
       </div>
-      <h1 className="text-2xl font-bold text-foreground">403 — Access Denied</h1>
+      <h1 className="text-2xl font-bold text-foreground">403 - Access Denied</h1>
       <p className="text-muted-foreground text-sm max-w-sm">
         You don't have permission to view this page. Contact your Super Admin to request access.
       </p>

@@ -715,7 +715,7 @@ const backendPayload: any = {
                               <span className="font-bold text-foreground">{param.name}</span>
                               <span className="text-muted-foreground ml-1.5">({param.unit})</span>
                               {(param as any).description && (
-                                <span className="text-muted-foreground ml-1.5 italic">— {(param as any).description}</span>
+                                <span className="text-muted-foreground ml-1.5 italic">- {(param as any).description}</span>
                               )}
                             </div>
                             <div className="flex items-center gap-1">

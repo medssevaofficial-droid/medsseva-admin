@@ -270,7 +270,7 @@ export const InventoryPage: React.FC = () => {
                       <tr key={r.id} className="hover:bg-muted/10">
                         <td className="px-6 py-4">
                           <div className="font-black text-slate-800">{r.name}</div>
-                          <div className="text-[9px] font-bold text-slate-400 font-mono mt-0.5">{r.sku} • {r.supplier?.name || r.manufacturer || '—'}</div>
+                          <div className="text-[9px] font-bold text-slate-400 font-mono mt-0.5">{r.sku} • {r.supplier?.name || r.manufacturer || '-'}</div>
                         </td>
                         <td className="px-6 py-4">
                           <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[10px] font-bold">{r.category}</span>
@@ -282,7 +282,7 @@ export const InventoryPage: React.FC = () => {
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-1.5 font-bold text-slate-600">
                             <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                            {r.expiryDate ? new Date(r.expiryDate).toLocaleDateString('en-IN') : '—'}
+                            {r.expiryDate ? new Date(r.expiryDate).toLocaleDateString('en-IN') : '-'}
                           </div>
                         </td>
                         <td className="px-6 py-4">
@@ -350,12 +350,12 @@ export const InventoryPage: React.FC = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between">
-                    <div className="text-xs font-black text-slate-800 truncate">{tx.inventoryItem?.name || '—'}</div>
+                    <div className="text-xs font-black text-slate-800 truncate">{tx.inventoryItem?.name || '-'}</div>
                     <div className="text-[10px] font-black text-slate-500 whitespace-nowrap">
                       {['STOCK_IN', 'TRANSFER_IN'].includes(tx.transactionType) ? '+' : '-'}{tx.quantity}
                     </div>
                   </div>
-                  <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase truncate">Ref: {tx.referenceNumber || '—'}</p>
+                  <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase truncate">Ref: {tx.referenceNumber || '-'}</p>
                   {tx.remarks && <p className="text-[10px] font-medium italic text-slate-600 mt-1 leading-relaxed">"{tx.remarks}"</p>}
                   <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-slate-100">
                     <span className="text-[8px] font-black bg-white text-slate-500 border px-1.5 py-0.5 rounded uppercase">{tx.transactionType}</span>

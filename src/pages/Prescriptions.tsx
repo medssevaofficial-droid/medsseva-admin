@@ -341,7 +341,7 @@ const getAuthHeader = () => {
                         {p.bookingId ? (
                           <span className="font-mono text-xs bg-muted px-2 py-1 rounded-md text-foreground">{p.bookingId.slice(0, 8)}...</span>
                         ) : (
-                          <span className="text-muted-foreground text-xs">—</span>
+                          <span className="text-muted-foreground text-xs">-</span>
                         )}
                       </td>
                       <td className="px-5 py-4 whitespace-nowrap text-xs text-muted-foreground">
@@ -360,7 +360,7 @@ const getAuthHeader = () => {
                         {p.notes ? (
                           <p className="text-xs text-muted-foreground truncate" title={p.notes}>{p.notes}</p>
                         ) : (
-                          <span className="text-muted-foreground text-xs">—</span>
+                          <span className="text-muted-foreground text-xs">-</span>
                         )}
                       </td>
                       <td className="px-5 py-4">

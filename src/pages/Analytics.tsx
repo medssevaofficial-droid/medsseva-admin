@@ -383,7 +383,7 @@ export const AnalyticsPage: React.FC = () => {
           <div>
             <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Median Lab TAT</div>
             <div className="text-2xl font-black text-slate-800">
-              {tat.medianHours > 0 ? `${tat.medianHours} Hours` : '—'}
+              {tat.medianHours > 0 ? `${tat.medianHours} Hours` : '-'}
             </div>
             <div className="text-[9px] font-bold text-teal-600 mt-0.5">
               {tat.fastestHours > 0 ? `Fastest: ${tat.fastestHours}h` : 'No data yet'}
@@ -398,7 +398,7 @@ export const AnalyticsPage: React.FC = () => {
           <div>
             <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Physician Sign-off Vel.</div>
             <div className="text-2xl font-black text-slate-800">
-              {tat.avgDoctorApprovalMinutes > 0 ? `${tat.avgDoctorApprovalMinutes} Mins` : '—'}
+              {tat.avgDoctorApprovalMinutes > 0 ? `${tat.avgDoctorApprovalMinutes} Mins` : '-'}
             </div>
             <div className="text-[9px] font-bold text-emerald-600 mt-0.5">Average approval cycle</div>
           </div>
