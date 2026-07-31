@@ -285,11 +285,7 @@ const backendPayload: any = {
           Failed to load tests: {error || 'Unknown error'}. Check that the backend is running and the database is seeded.
         </div>
       )}
-  {(testsLoading && tests.length === 0) && (
-        <div className="mb-4 px-4 py-3 rounded-xl bg-muted text-muted-foreground text-sm font-semibold">
-          Loading tests...
-        </div>
-      )}
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 flex-shrink-0">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">Medical Test Catalog</h1>
@@ -384,7 +380,27 @@ const backendPayload: any = {
                 <th className="px-6 py-4 font-bold text-center">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/40 text-foreground bg-card">
+         <tbody className="divide-y divide-border/40 text-foreground bg-card">
+              {testsLoading && tests.length === 0 && (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-muted flex-shrink-0" />
+                        <div className="space-y-2">
+                          <div className="h-4 bg-muted rounded w-40" />
+                          <div className="h-3 bg-muted rounded w-24" />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4"><div className="h-5 bg-muted rounded-full w-20" /></td>
+                    <td className="px-6 py-4"><div className="h-5 bg-muted rounded-full w-24" /></td>
+                    <td className="px-6 py-4"><div className="h-4 bg-muted rounded w-16" /></td>
+                    <td className="px-6 py-4"><div className="h-4 bg-muted rounded w-14 ml-auto" /></td>
+                    <td className="px-6 py-4"><div className="h-4 bg-muted rounded w-10 mx-auto" /></td>
+                  </tr>
+                ))
+              )}
               <AnimatePresence initial={false}>
                 {filteredTests.map((test) => {
                   const hasDiscount = test.discountedPrice && test.discountedPrice < test.price;
@@ -480,8 +496,7 @@ const backendPayload: any = {
                 })}
               </AnimatePresence>
               
-              {/* Empty Search Fallback */}
-              {filteredTests.length === 0 && (
+             {!testsLoading && filteredTests.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-6 py-16 text-center bg-card">
                     <div className="max-w-md mx-auto flex flex-col items-center justify-center text-center">

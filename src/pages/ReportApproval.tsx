@@ -228,17 +228,39 @@ const handleFinalize = async () => {
       setFinalizing(false);
     }
   };
-  const handleSend = async (recipientId: string) => {
+ const handleSend = async (recipientId: string) => {
     if (!selectedReport) return;
     setSending(true);
     try {
+      let reportToSend = selectedReport;
+
+      if (!reportToSend.pdfUrl) {
+        toast.success('Generating PDF', 'No PDF found, generating now before sending...');
+        try {
+          const result = await generateAndUploadPDF(reportToSend);
+          if (!result) throw new Error('PDF generation failed');
+          const updated = await dispatch(savePdfUrlThunk({
+            id: reportToSend.id,
+            pdfUrl: result.pdfUrl,
+            pdfPublicId: result.pdfPublicId,
+          })).unwrap();
+          reportToSend = updated;
+          setSelectedReport(updated);
+          await dispatch(fetchAllReports());
+        } catch {
+          toast.error('PDF failed', 'Could not generate PDF. Please use Generate & Download first, then try sending again.');
+          setSending(false);
+          return;
+        }
+      }
+
       const result = await dispatch(sendReportThunk({
-        id: selectedReport.id,
+        id: reportToSend.id,
         recipientType: sendRecipientType,
         recipientId,
       })).unwrap();
       setSelectedReport(result);
- setShowSendModal(false);
+      setShowSendModal(false);
       await dispatch(fetchAllReports());
       toast.success('Report sent', 'The report has been delivered to the recipient.');
     } catch (e: any) {

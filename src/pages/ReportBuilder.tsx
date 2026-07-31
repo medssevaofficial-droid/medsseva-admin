@@ -257,6 +257,7 @@ export const ReportBuilderPage: React.FC = () => {
 const toast = useToast();
  const [searchQuery, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  const preselectedBookingId = new URLSearchParams(window.location.search).get('bookingId');
 
   useEffect(() => {
     const t = setTimeout(() => setSearchQuery(searchInput), 250);
@@ -280,6 +281,14 @@ useReportsQuery();
       if (res?.data) setBranches(res.data);
     }).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!preselectedBookingId || bookingsForReport.length === 0) return;
+    const target = bookingsForReport.find((b: any) => b.id === preselectedBookingId);
+    if (target && !selectedBooking) {
+      handleSelectBooking(target);
+    }
+  }, [preselectedBookingId, bookingsForReport]);
 
   useEffect(() => {
     if (verification.reportBranchId) {
@@ -314,8 +323,11 @@ useReportsQuery();
         doctorRemarks: existingReport.doctorRemarks || '',
         internalNotes: existingReport.internalNotes || '',
       });
+    const fallbackBranchId = booking.collectionMode === 'HOME'
+        ? (booking.sampleDelivery?.branch?.id || '')
+        : (booking.branchId || '');
       setVerification({
-        reportBranchId: existingReport.reportBranchId || booking.branchId || '',
+        reportBranchId: existingReport.reportBranchId || fallbackBranchId,
         doctorName: existingReport.doctorName || '',
         doctorQualification: existingReport.doctorQualification || '',
         doctorRegNo: existingReport.doctorRegNo || '',
@@ -325,7 +337,10 @@ useReportsQuery();
     } else {
       setTestGroups(buildTestGroups(booking));
       setNotes({ clinicalNotes: '', technicianRemarks: '', doctorRemarks: '', internalNotes: '' });
-      setVerification({ ...emptyVerification(), reportBranchId: booking.branchId || '' });
+  const defaultBranchId = booking.collectionMode === 'HOME'
+        ? (booking.sampleDelivery?.branch?.id || '')
+        : (booking.branchId || '');
+      setVerification({ ...emptyVerification(), reportBranchId: defaultBranchId });
     }
   }, [reports]);
 
@@ -580,7 +595,7 @@ const filteredBookings = useMemo(() => {
                     <div><div className="text-xs text-muted-foreground">Collection</div><div className="font-bold">{selectedBooking.collectionMode}</div></div>
                     <div><div className="text-xs text-muted-foreground">Gender</div><div className="font-bold">{selectedBooking.patientGender || '-'}</div></div>
                     <div><div className="text-xs text-muted-foreground">Age</div><div className="font-bold">{selectedBooking.patientAge ? `${selectedBooking.patientAge} yrs` : '-'}</div></div>
-                    <div><div className="text-xs text-muted-foreground">Branch</div><div className="font-bold">{selectedBooking.branch?.name || '-'}</div></div>
+                  <div><div className="text-xs text-muted-foreground">Branch</div><div className="font-bold">{selectedBooking.collectionMode === 'HOME' ? (selectedBooking.sampleDelivery?.branch?.name || 'Not Assigned') : (selectedBooking.branch?.name || 'Not Assigned')}</div></div>
                     <div><div className="text-xs text-muted-foreground">Scheduled</div><div className="font-bold">{new Date(selectedBooking.scheduledDate).toLocaleDateString('en-IN')}</div></div>
                   </div>
                 </div>

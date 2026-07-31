@@ -23,13 +23,16 @@ import {
   XCircle,
   Home,
   Building2,
-  Star
+  Star,
+  FileText,
+  FlaskConical,
 } from 'lucide-react';
 
 import { cn } from '../utils/cn';
 import toast from 'react-hot-toast';
 import { processPayment } from '../utils/PaymentModule';
 import { testService } from '../services/api';
+import { useNavigate } from 'react-router-dom';
 
 const STATUS_COLORS: Record<BookingStatus, { bg: string; text: string; border: string }> = {
   'Pending': { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
@@ -49,7 +52,8 @@ const STATUS_COLORS: Record<BookingStatus, { bg: string; text: string; border: s
 const ALL_STATUSES: BookingStatus[] = ['Pending', 'Confirmed', 'Assigned', 'Collected', 'Processing', 'Completed'];
 
 export const BookingsPage: React.FC = () => {
-  const dispatch = useAppDispatch();
+ const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const bookings = useAppSelector(state => state.bookings.bookings);
   const reports = useAppSelector(state => state.reports.reports);
   const allTests = useAppSelector(state => state.tests.tests);
@@ -57,8 +61,8 @@ export const BookingsPage: React.FC = () => {
 const currentCityId = useAppSelector(state => state.auth.currentCityId);
   const currentBranchId = useAppSelector(state => state.auth.currentBranchId);
   const { bookings: storeBookings } = useAppSelector(state => state.bookings);
-  const { isLoading: bookingsQueryLoading } = useBookingsQuery();
-  const [pageLoading, setPageLoading] = useState(storeBookings.length === 0);
+const { isLoading: bookingsQueryLoading } = useBookingsQuery();
+  const [pageLoading, setPageLoading] = useState(storeBookings.length === 0 && bookingsQueryLoading);
   const [search, setSearch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -73,12 +77,13 @@ const [isLabActioning, setIsLabActioning] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
 const [isLabStatusUpdating, setIsLabStatusUpdating] = useState(false);
 const [isCollectingPayment, setIsCollectingPayment] = useState(false);
+const [isSendingInvoice, setIsSendingInvoice] = useState(false);
 
-  React.useEffect(() => {
+React.useEffect(() => {
     Promise.all([
-     testService.getExecutives().then(setExecutives).catch(() => {}),
+      testService.getExecutives().then(setExecutives).catch(() => {}),
       testService.getAvailablePartners().then(setAvailablePartners).catch(() => {}),
-    ]).finally(() => setPageLoading(false));
+    ]);
   }, []);
 
   React.useEffect(() => {
@@ -247,7 +252,19 @@ const handleMarkPayment = async (bookingId: string, paymentStatus: 'SUCCESS', pa
     setIsUpdatingPayment(false);
   };
 
-const handleCollectPayment = async () => {
+const handleSendInvoice = async () => {
+    if (!selectedBooking) return;
+    setIsSendingInvoice(true);
+    try {
+      await testService.sendInvoice(selectedBooking.id);
+      toast.success('Invoice sent to patient successfully.');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || 'Failed to send invoice.');
+    }
+    setIsSendingInvoice(false);
+  };
+
+  const handleCollectPayment = async () => {
     if (!selectedBooking) return;
     setIsCollectingPayment(true);
     await processPayment({
@@ -342,25 +359,35 @@ const getStaffName = (id?: string) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-card border border-border p-4 rounded-xl shadow-sm">
-          <div className="text-xs font-semibold text-muted-foreground uppercase">Total Active</div>
-          <div className="text-2xl font-bold mt-1">{filteredBookings.filter(b => b.status !== 'Completed' && b.status !== 'Cancelled').length}</div>
-        </div>
-        <div className="bg-card border border-border p-4 rounded-xl shadow-sm">
-          <div className="text-xs font-semibold text-muted-foreground uppercase">Pending Pickup</div>
-          <div className="text-2xl font-bold mt-1 text-amber-600">{filteredBookings.filter(b => b.status === 'Confirmed' || b.status === 'Assigned').length}</div>
-        </div>
-        <div className="bg-card border border-border p-4 rounded-xl shadow-sm">
-          <div className="text-xs font-semibold text-muted-foreground uppercase">In Processing</div>
-          <div className="text-2xl font-bold mt-1 text-sky-600">{filteredBookings.filter(b => b.status === 'Processing').length}</div>
-        </div>
-        <div className="bg-card border border-border p-4 rounded-xl shadow-sm">
-          <div className="text-xs font-semibold text-muted-foreground uppercase">Completed</div>
-          <div className="text-2xl font-bold mt-1 text-emerald-600">{filteredBookings.filter(b => b.status === 'Completed').length}</div>
-        </div>
+<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {pageLoading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-card border border-border p-4 rounded-xl shadow-sm animate-pulse">
+              <div className="h-3 bg-muted rounded w-20 mb-3" />
+              <div className="h-7 bg-muted rounded w-10" />
+            </div>
+          ))
+        ) : (
+          <>
+            <div className="bg-card border border-border p-4 rounded-xl shadow-sm">
+              <div className="text-xs font-semibold text-muted-foreground uppercase">Total Active</div>
+              <div className="text-2xl font-bold mt-1">{filteredBookings.filter(b => b.status !== 'Completed' && b.status !== 'Cancelled').length}</div>
+            </div>
+            <div className="bg-card border border-border p-4 rounded-xl shadow-sm">
+              <div className="text-xs font-semibold text-muted-foreground uppercase">Pending Pickup</div>
+              <div className="text-2xl font-bold mt-1 text-amber-600">{filteredBookings.filter(b => b.status === 'Confirmed' || b.status === 'Assigned').length}</div>
+            </div>
+            <div className="bg-card border border-border p-4 rounded-xl shadow-sm">
+              <div className="text-xs font-semibold text-muted-foreground uppercase">In Processing</div>
+              <div className="text-2xl font-bold mt-1 text-sky-600">{filteredBookings.filter(b => b.status === 'Processing').length}</div>
+            </div>
+            <div className="bg-card border border-border p-4 rounded-xl shadow-sm">
+              <div className="text-xs font-semibold text-muted-foreground uppercase">Completed</div>
+              <div className="text-2xl font-bold mt-1 text-emerald-600">{filteredBookings.filter(b => b.status === 'Completed').length}</div>
+            </div>
+          </>
+        )}
       </div>
-
      
       <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
@@ -378,8 +405,28 @@ const getStaffName = (id?: string) => {
                 <th className="px-6 py-4 font-bold text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
-              {filteredBookings.map((booking) => (
+       <tbody className="divide-y divide-border">
+              {pageLoading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="px-6 py-4"><div className="h-4 bg-muted rounded w-24" /></td>
+                    <td className="px-6 py-4">
+                      <div className="h-4 bg-muted rounded w-28 mb-1" />
+                      <div className="h-3 bg-muted rounded w-20" />
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="h-4 bg-muted rounded w-20 mb-1" />
+                      <div className="h-3 bg-muted rounded w-14" />
+                    </td>
+                    <td className="px-6 py-4"><div className="h-4 bg-muted rounded w-32" /></td>
+                    <td className="px-6 py-4"><div className="h-5 bg-muted rounded-full w-20" /></td>
+                    <td className="px-6 py-4"><div className="h-5 bg-muted rounded w-14" /></td>
+                    <td className="px-6 py-4"><div className="h-4 bg-muted rounded w-24" /></td>
+                    <td className="px-6 py-4"><div className="h-4 bg-muted rounded w-20" /></td>
+                    <td className="px-6 py-4"><div className="h-4 bg-muted rounded w-12 ml-auto" /></td>
+                  </tr>
+                ))
+              ) : filteredBookings.map((booking) => (
                 <tr 
                   key={booking.id}
                   className="hover:bg-muted/30 transition-colors cursor-pointer"
@@ -505,9 +552,10 @@ const getStaffName = (id?: string) => {
                   </td>
                 </tr>
               ))}
-              {filteredBookings.length === 0 && (
+        
+              {!pageLoading && filteredBookings.length === 0 && (
                 <tr>
-               <td colSpan={8} className="px-6 py-12 text-center text-muted-foreground">
+                  <td colSpan={8} className="px-6 py-12 text-center text-muted-foreground">
                     No bookings found.
                   </td>
                 </tr>
@@ -701,6 +749,19 @@ const getStaffName = (id?: string) => {
                       }
                       return null;
                     })()}
+                 {(selectedBooking as any).paymentStatus === 'SUCCESS' && (
+                      <div className="w-full">
+                        <button
+                          disabled={isSendingInvoice}
+                          onClick={handleSendInvoice}
+                          className="w-full px-3 py-2 bg-teal-600 text-white rounded text-xs font-bold hover:bg-teal-700 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          {isSendingInvoice ? 'Sending Invoice...' : 'Send Invoice'}
+                        </button>
+                      </div>
+                    )}
+
                     {(selectedBooking as any).rawStatus === 'PATIENT_REACHED_LAB' && (selectedBooking as any).collectionMode === 'LAB' && (
                       <div className="w-full p-3 bg-violet-50 border border-violet-200 rounded-lg space-y-2">
                         <div className="text-xs font-bold text-violet-700 flex items-center gap-1">
@@ -748,65 +809,77 @@ const getStaffName = (id?: string) => {
                       </button>
                     )}
 
-                    {(selectedBooking as any).rawStatus === 'PROCESSING' && (selectedBooking as any).collectionMode === 'LAB' && (selectedBooking as any).rawStatus !== 'COMPLETED' && (
-                      <button
-                        disabled={isLabStatusUpdating}
-                        onClick={() => handleUpdateLabStatus('REPORT_READY')}
-                        className="px-3 py-1.5 bg-teal-600 text-white rounded text-xs font-bold hover:bg-teal-700 disabled:opacity-50"
-                      >
-                        {isLabStatusUpdating ? 'Updating...' : 'Mark Report Ready'}
-                      </button>
+           {(selectedBooking as any).rawStatus === 'PROCESSING' && (selectedBooking as any).collectionMode === 'LAB' && (
+                      <div className="w-full p-3 bg-teal-50 border border-teal-200 rounded-lg space-y-2">
+                        <div className="text-xs font-bold text-teal-700 flex items-center gap-1.5">
+                          <FlaskConical className="h-3.5 w-3.5" /> Sample is being processed
+                        </div>
+                        <p className="text-xs text-teal-600">
+                          Open the Report Builder to enter test values and finalize. Booking automatically becomes Report Ready after finalization.
+                        </p>
+                        <button
+                          onClick={() => navigate(`/report-builder?bookingId=${(selectedBooking as any).id}`)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 text-white rounded text-xs font-bold hover:bg-teal-700"
+                        >
+                          <FileText className="h-3.5 w-3.5" /> Make Report
+                        </button>
+                      </div>
                     )}
 
                     {(selectedBooking as any).rawStatus === 'REPORT_READY' && (selectedBooking as any).collectionMode === 'LAB' && (
-                      <button
-                        disabled={isLabStatusUpdating}
-                        onClick={() => handleUpdateLabStatus('COMPLETED')}
-                        className="px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-bold hover:bg-emerald-700 disabled:opacity-50"
-                      >
-                        {isLabStatusUpdating ? 'Updating...' : 'Mark Completed'}
-                      </button>
+                      <div className="w-full p-3 bg-emerald-50 border border-emerald-200 rounded-lg space-y-2">
+                        <div className="text-xs font-bold text-emerald-700 flex items-center gap-1.5">
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Report is ready to send
+                        </div>
+                        <p className="text-xs text-emerald-600">
+                          Report has been finalized. Send it to the patient — booking becomes Completed automatically.
+                        </p>
+                        <button
+                          onClick={() => navigate(`/report-approval`)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-bold hover:bg-emerald-700"
+                        >
+                          <FileText className="h-3.5 w-3.5" /> Send Report
+                        </button>
+                      </div>
                     )}
-                    {selectedBooking.status === 'Assigned' && (selectedBooking as any).collectionMode !== 'LAB' && (
-                      <button
-                        onClick={() => handleStatusChange('Collected')}
-                        className="px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-bold hover:bg-emerald-700"
-                      >
-                        Mark Sample Collected
-                      </button>
-                    )}
-                    {selectedBooking.status === 'Collected' && (
-                      <button 
-                        onClick={() => {
-                          setAssignType('technician');
-                          setIsAssigning(true);
-                        }}
-                        className="px-3 py-1.5 bg-sky-600 text-white rounded text-xs font-bold hover:bg-sky-700 flex items-center gap-1"
-                      >
-                        <UserPlus className="h-3.5 w-3.5" /> Send to Lab Processing
-                      </button>
+          {(selectedBooking as any).collectionMode === 'HOME' &&
+                      ['DELIVERED_TO_LAB', 'PROCESSING'].includes((selectedBooking as any).rawStatus) && (
+                      <div className="w-full p-3 bg-teal-50 border border-teal-200 rounded-lg space-y-2">
+                        <div className="text-xs font-bold text-teal-700 flex items-center gap-1.5">
+                          <FlaskConical className="h-3.5 w-3.5" /> Sample received at lab
+                        </div>
+                        <p className="text-xs text-teal-600">
+                          Open the Report Builder to enter test values, finalize, and send the report to the patient. Booking becomes Completed automatically after sending.
+                        </p>
+                        <button
+                          onClick={() => navigate(`/report-builder?bookingId=${(selectedBooking as any).id}`)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 text-white rounded text-xs font-bold hover:bg-teal-700"
+                        >
+                          <FileText className="h-3.5 w-3.5" /> Make Report
+                        </button>
+                      </div>
                     )}
 
-               {selectedBooking.status === 'Processing' && (selectedBooking as any).collectionMode !== 'LAB' && (
-                      <button 
-                        onClick={() => handleStatusChange('Completed')}
-                        className="px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-bold hover:bg-emerald-700"
-                      >
-                        Verify & Complete
-                      </button>
+                    {(selectedBooking as any).collectionMode === 'HOME' &&
+                      (selectedBooking as any).rawStatus === 'REPORT_READY' && (
+                      <div className="w-full p-3 bg-emerald-50 border border-emerald-200 rounded-lg space-y-2">
+                        <div className="text-xs font-bold text-emerald-700 flex items-center gap-1.5">
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Report is ready to send
+                        </div>
+                        <p className="text-xs text-emerald-600">
+                          The report has been finalized. Open Report Approval to send it to the patient. Booking becomes Completed automatically.
+                        </p>
+                        <button
+                          onClick={() => navigate(`/report-approval`)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-bold hover:bg-emerald-700"
+                        >
+                          <FileText className="h-3.5 w-3.5" /> Send Report
+                        </button>
+                      </div>
                     )}
 
            
-       {selectedBooking.status !== 'Cancelled' && selectedBooking.status !== 'Completed' &&
-                     !['COMPLETED', 'CANCELLED', 'REJECTED'].includes((selectedBooking as any).rawStatus) &&
-                     !((selectedBooking as any).collectionMode === 'LAB' && (selectedBooking as any).rawStatus === 'CONFIRMED') && (
-                      <button
-                        onClick={() => handleStatusChange('Cancelled')}
-                        className="px-3 py-1.5 bg-rose-100 text-rose-700 border border-rose-200 rounded text-xs font-bold hover:bg-rose-200"
-                      >
-                        Cancel
-                      </button>
-                    )}
+  
                   </div>
                 </div>
 
@@ -864,46 +937,51 @@ const getStaffName = (id?: string) => {
                 </div>
 
                 
-            <div className="border-t border-border pt-4">
+          <div className="border-t border-border pt-4">
                   <h3 className="text-sm font-bold mb-4 text-foreground">Diagnostic Workflow Timeline</h3>
-               {(() => {
+                  {(() => {
                     const mode = (selectedBooking as any).collectionMode;
+                    const rawStatus = (selectedBooking as any).rawStatus || '';
+                    const paymentDone = (selectedBooking as any).paymentStatus === 'SUCCESS';
 
-                    if (mode === 'HOME') {
-                      const LAB_TIMELINE: { label: string; desc: string; rank: number }[] = [
-                        { label: 'Booking Created', desc: 'Booking registered through mobile app', rank: 0 },
-                        { label: 'Awaiting Lab Approval', desc: 'Pending review by lab admin', rank: 0 },
-                        { label: 'Booking Accepted', desc: 'Lab has approved the visit', rank: 2 },
-                        { label: 'Patient Reached Lab', desc: 'Patient confirmed arrival at lab counter', rank: 3 },
-                        { label: 'Payment Received', desc: 'Counter payment collected', rank: 3 },
-                        { label: 'Sample Collected', desc: 'Specimen collected and barcoded', rank: 5 },
-                        { label: 'Processing', desc: 'Tests underway in lab', rank: 6 },
-                        { label: 'Report Ready', desc: 'Results validated and ready', rank: 7 },
-                        { label: 'Completed', desc: 'Report dispatched to patient', rank: 8 },
-                      ];
-                      const LAB_RANK: Record<string, number> = {
-                        WAITING_FOR_ASSIGNMENT: 0, PENDING: 0, CONFIRMED: 2,
-                        PATIENT_REACHED_LAB: 3, SAMPLE_COLLECTED: 5, PROCESSING: 6,
-                        REPORT_READY: 7, COMPLETED: 8,
+                    if (mode === 'LAB') {
+                      const LAB_STATUS_RANK: Record<string, number> = {
+                        WAITING_FOR_ASSIGNMENT: 0,
+                        PENDING: 0,
+                        CONFIRMED: 1,
+                        PATIENT_REACHED_LAB: 2,
+                        SAMPLE_COLLECTED: 4,
+                        PROCESSING: 5,
+                        REPORT_READY: 6,
+                        COMPLETED: 7,
+                        CANCELLED: -1,
+                        REJECTED: -1,
                       };
-                      const currentRawStatus = (selectedBooking as any).rawStatus || 'WAITING_FOR_ASSIGNMENT';
-                      const paymentDone = (selectedBooking as any).paymentStatus === 'SUCCESS';
-                      const currentRank = LAB_RANK[currentRawStatus] ?? 0;
-
+                      const currentRank = LAB_STATUS_RANK[rawStatus] ?? 0;
+                      const LAB_STEPS: { label: string; desc: string; rank: number }[] = [
+                        { label: 'Booking Requested', desc: 'Patient submitted a lab visit booking', rank: 0 },
+                        { label: 'Booking Confirmed', desc: 'Admin accepted the booking', rank: 1 },
+                        { label: 'Patient Reached Lab', desc: 'Patient confirmed arrival at lab counter', rank: 2 },
+                        { label: 'Payment Completed', desc: paymentDone ? 'Payment received successfully' : 'Awaiting payment collection', rank: 3 },
+                        { label: 'Sample Collected', desc: 'Specimen collected and accessioned', rank: 4 },
+                        { label: 'Report Ready', desc: 'Report finalized via Report Builder', rank: 6 },
+                        { label: 'Report Sent', desc: 'Report delivered to patient', rank: 7 },
+                        { label: 'Completed', desc: 'Booking closed after report delivery', rank: 7 },
+                      ];
                       return (
                         <div className="relative pl-6 border-l border-dashed border-border space-y-6">
-                          {LAB_TIMELINE.map((step, idx) => {
+                          {LAB_STEPS.map((step, idx) => {
                             let isDone = false;
                             let isCurrent = false;
-                            if (idx === 0) { isDone = true; }
-                            else if (idx === 1) { isDone = currentRank >= 0; isCurrent = currentRank === 0; }
-                            else if (idx === 2) { isDone = currentRank >= 2; isCurrent = currentRank === 2; }
-                            else if (idx === 3) { isDone = currentRank >= 3; isCurrent = currentRank === 3 && !paymentDone; }
-                            else if (idx === 4) { isDone = currentRank >= 3 && paymentDone; isCurrent = currentRank === 3 && !paymentDone; }
-                            else if (idx === 5) { isDone = currentRank >= 5; isCurrent = currentRank === 5; }
-                            else if (idx === 6) { isDone = currentRank >= 6; isCurrent = currentRank === 6; }
-                            else if (idx === 7) { isDone = currentRank >= 7; isCurrent = currentRank === 7; }
-                            else if (idx === 8) { isDone = currentRank >= 8; isCurrent = currentRank === 8; }
+                            if (idx === 0) {
+                              isDone = true;
+                            } else if (idx === 3) {
+                              isDone = currentRank >= 2 && paymentDone;
+                              isCurrent = currentRank >= 2 && !paymentDone;
+                            } else {
+                              isDone = currentRank >= step.rank;
+                              isCurrent = !isDone && currentRank === step.rank - 1;
+                            }
                             return (
                               <div key={idx} className="relative">
                                 <span className={cn(
@@ -925,14 +1003,39 @@ const getStaffName = (id?: string) => {
                       );
                     }
 
-          return (
+                const HOME_STATUS_RANK: Record<string, number> = {
+                      PENDING: 0,
+                      WAITING_FOR_PARTNER: 0,
+                      ASSIGNED: 1,
+                      ACCEPTED: 1,
+                      ON_THE_WAY: 2,
+                      REACHED_LOCATION: 3,
+                      SAMPLE_COLLECTED: 4,
+                      DELIVERING_TO_BRANCH: 5,
+                      DELIVERED_TO_LAB: 6,
+                      PROCESSING: 6,
+                      REPORT_READY: 7,
+                      COMPLETED: 8,
+                    };
+                    const homeRank = HOME_STATUS_RANK[rawStatus] ?? 0;
+                    const HOME_STEPS: { label: string; desc: string; rank: number }[] = [
+                      { label: 'Booking Requested',     desc: 'Patient submitted a home collection booking',           rank: 0 },
+                      { label: 'Partner Assigned',      desc: 'Sample collection executive assigned and accepted',     rank: 1 },
+                      { label: 'Partner On The Way',    desc: 'Executive heading to patient location',                 rank: 2 },
+                      { label: 'Partner Arrived',       desc: 'Executive reached patient location',                   rank: 3 },
+                      { label: 'Sample Collected',      desc: 'Sample collected from patient',                        rank: 4 },
+                      { label: 'Partner Selected Branch', desc: 'Partner chose delivery branch, heading to lab',      rank: 5 },
+                      { label: 'Sample Reached Lab',    desc: 'Sample delivered to lab branch by partner',            rank: 6 },
+                      { label: 'Report Ready',          desc: 'Report finalized by admin via Report Builder',         rank: 7 },
+                      { label: 'Completed',             desc: 'Report sent to patient, booking closed',               rank: 8 },
+                    ];
+                    return (
                       <div className="relative pl-6 border-l border-dashed border-border space-y-6">
-                        {ALL_STATUSES.map((st, idx) => {
-                          const currentIdx = ALL_STATUSES.indexOf(selectedBooking.status);
-                          const isDone = idx <= currentIdx;
-                          const isCurrent = idx === currentIdx;
+                        {HOME_STEPS.map((step, idx) => {
+                          const isDone = idx === 0 ? true : homeRank >= step.rank;
+                          const isCurrent = !isDone && homeRank === step.rank - 1;
                           return (
-                            <div key={st} className="relative">
+                            <div key={idx} className="relative">
                               <span className={cn(
                                 "absolute -left-[31px] top-0.5 h-4 w-4 rounded-full border-2 border-background flex items-center justify-center shadow-sm transition-colors",
                                 isDone ? "bg-primary border-primary" : "bg-card border-muted-foreground/40",
@@ -941,17 +1044,10 @@ const getStaffName = (id?: string) => {
                                 {isDone && <CheckCircle2 className="h-3 w-3 text-white" />}
                               </span>
                               <div className="text-sm font-bold flex items-center gap-2">
-                                <span className={isDone ? "text-foreground" : "text-muted-foreground"}>{st}</span>
+                                <span className={isDone || isCurrent ? "text-foreground" : "text-muted-foreground"}>{step.label}</span>
                                 {isCurrent && <span className="bg-primary/10 text-primary text-[10px] uppercase px-1.5 py-0.5 rounded font-black">Live</span>}
                               </div>
-                              <div className="text-xs text-muted-foreground mt-0.5">
-                                {st === 'Assigned' && selectedBooking.phlebotomistId ? `Allocated to ${getStaffName(selectedBooking.phlebotomistId)}` : ''}
-                                {st === 'Processing' && selectedBooking.technicianId ? `Processing by ${getStaffName(selectedBooking.technicianId)}` : ''}
-                                {st === 'Confirmed' ? 'Approved and validated by operations' : ''}
-                                {st === 'Pending' ? 'Booking registered through mobile client' : ''}
-                                {st === 'Collected' && isDone ? 'Specimen barcoded and sealed' : ''}
-                                {st === 'Completed' && isDone ? 'Validated report published to patient portal' : ''}
-                              </div>
+                              <div className="text-xs text-muted-foreground mt-0.5">{step.desc}</div>
                             </div>
                           );
                         })}

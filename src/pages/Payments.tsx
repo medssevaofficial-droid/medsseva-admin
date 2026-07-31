@@ -291,7 +291,7 @@ if (executeRefundThunk.fulfilled.match(result)) {
                   const totalRefunded = txRefunds.filter(r => r.status === 'COMPLETED').reduce((s, r) => s + r.amount, 0);
                   const remainingRefundable = Math.round((tx.amount - totalRefunded) * 100) / 100;
                   const isExpanded = expandedPayment === tx.id;
-                  const canRefund = ['CAPTURED', 'PARTIALLY_REFUNDED'].includes(tx.status) && remainingRefundable > 0;
+              const canRefund = ['CAPTURED', 'PARTIALLY_REFUNDED'].includes(tx.status) && remainingRefundable > 0 && tx.method !== 'CASH';
 
                   return (
                     <>

@@ -118,8 +118,12 @@ initiateRazorpayCheckout: async (id: string) => {
     const response = await api.patch(`/bookings/${id}/accept-lab`);
     return response.data;
   },
-  rejectLabBooking: async (id: string, reason: string) => {
+rejectLabBooking: async (id: string, reason: string) => {
     const response = await api.patch(`/bookings/${id}/reject-lab`, { reason });
+    return response.data;
+  },
+  sendInvoice: async (id: string) => {
+    const response = await api.post(`/bookings/${id}/send-invoice`);
     return response.data;
   },
   getAvailablePartners: async () => {
@@ -131,12 +135,15 @@ initiateRazorpayCheckout: async (id: string) => {
     const response = await api.get(url);
     return response.data;
   },
-  updatePartnerApproval: async (id: string, approvalStatus: string, rejectionReason?: string) => {
+updatePartnerApproval: async (id: string, approvalStatus: string, rejectionReason?: string) => {
     const response = await api.patch(`/auth/partners/${id}/approval`, { approvalStatus, rejectionReason });
     return response.data;
   },
+  getPartnerRatings: async (partnerId: string) => {
+    const response = await api.get(`/partner/${partnerId}/ratings`);
+    return response.data;
+  },
 };
-
 export const sampleService = {
   getQueue: () => api.get('/samples/queue').then(r => r.data),
   receiveSample: (data: {

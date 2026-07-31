@@ -57,7 +57,9 @@ export const PathologyPartnersPage: React.FC = () => {
   const [isRejecting, setIsRejecting] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [customReason, setCustomReason] = useState('');
-  const [isUpdating, setIsUpdating] = useState(false);
+const [isUpdating, setIsUpdating] = useState(false);
+  const [partnerRatings, setPartnerRatings] = useState<any>(null);
+  const [ratingsLoading, setRatingsLoading] = useState(false);
 
 const { data: partnersData, isLoading: partnersQueryLoading } = usePartnersQuery();
   const isLoading = partnersQueryLoading && partners.length === 0;
@@ -113,6 +115,19 @@ const { data: partnersData, isLoading: partnersQueryLoading } = usePartnersQuery
       toast.error(err?.response?.data?.error || 'Failed to suspend partner.');
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+const loadPartnerRatings = async (partnerId: string) => {
+    setRatingsLoading(true);
+    setPartnerRatings(null);
+    try {
+      const data = await testService.getPartnerRatings(partnerId);
+      setPartnerRatings(data);
+    } catch {
+      setPartnerRatings(null);
+    } finally {
+      setRatingsLoading(false);
     }
   };
 
@@ -282,7 +297,7 @@ const { data: partnersData, isLoading: partnersQueryLoading } = usePartnersQuery
                   <tr
                     key={partner.id}
                     className="hover:bg-muted/30 transition-colors cursor-pointer"
-                    onClick={() => setSelectedPartner(partner)}
+                onClick={() => { setSelectedPartner(partner); loadPartnerRatings(partner.id); }}
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -461,6 +476,67 @@ const { data: partnersData, isLoading: partnersQueryLoading } = usePartnersQuery
                       {selectedPartner.isAvailable ? '● Available' : '○ Unavailable'}
                     </span>
                   </div>
+                </div>
+
+               {/* Ratings */}
+                <div className="bg-card border border-border rounded-xl p-4">
+                  <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Ratings & Reviews</h3>
+                  {ratingsLoading ? (
+                    <div className="flex justify-center py-4">
+                      <div className="h-5 w-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  ) : !partnerRatings || partnerRatings.totalRatings === 0 ? (
+                    <p className="text-sm text-muted-foreground">No ratings yet.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-3xl font-black text-foreground">{partnerRatings.averageRating.toFixed(1)}</span>
+                        <div>
+                          <div className="flex gap-0.5">
+                            {[1,2,3,4,5].map((i: number) => (
+                              <Star key={i} className={cn('h-4 w-4', i <= Math.round(partnerRatings.averageRating) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground')} />
+                            ))}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5">{partnerRatings.totalRatings} ratings</p>
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        {[5,4,3,2,1].map((star: number) => {
+                          const count = partnerRatings.breakdown[star] || 0;
+                          const pct = partnerRatings.totalRatings > 0 ? (count / partnerRatings.totalRatings) * 100 : 0;
+                          return (
+                            <div key={star} className="flex items-center gap-2 text-xs">
+                              <span className="w-3 text-muted-foreground font-bold">{star}</span>
+                              <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
+                              <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                                <div className="h-full bg-amber-400 rounded-full" style={{ width: `${pct}%` }} />
+                              </div>
+                              <span className="w-4 text-right text-muted-foreground">{count}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {partnerRatings.reviews.length > 0 && (
+                        <div className="space-y-3 pt-2 border-t border-border">
+                          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Recent Reviews</p>
+                          {partnerRatings.reviews.slice(0, 5).map((r: any) => (
+                            <div key={r.id} className="space-y-1">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-semibold text-foreground">{r.userName}</span>
+                                <div className="flex gap-0.5">
+                                  {[1,2,3,4,5].map((i: number) => (
+                                    <Star key={i} className={cn('h-3 w-3', i <= r.rating ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground')} />
+                                  ))}
+                                </div>
+                              </div>
+                              <p className="text-xs text-muted-foreground">#{r.bookingCode} · {new Date(r.createdAt).toLocaleDateString()}</p>
+                              {r.review && <p className="text-xs text-foreground">{r.review}</p>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Actions */}

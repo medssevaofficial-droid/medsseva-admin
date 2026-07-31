@@ -3,8 +3,8 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '@/redux/hooks';
 import { logout } from '@/redux/slices/authSlice';
 import { NAVIGATION_ITEMS } from '@/constants/navigation';
-import { RoleSwitcher } from '@/components/RoleSwitcher';
-import { GlobalContextBar } from '@/components/GlobalContextBar';
+
+
 import { 
   Menu, 
   X, 
@@ -273,15 +273,14 @@ const filteredNavItems = NAVIGATION_ITEMS.filter((item) => {
               <RefreshCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin")} />
               <span className="hidden sm:inline">{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
             </button>
-            <button className="relative p-2 rounded-xl border border-border/60 hover:border-border hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-all">
+         <button onClick={() => navigate('/notifications')} className="relative p-2 rounded-xl border border-border/60 hover:border-border hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-all">
               <Bell className="w-[19px] h-[19px]" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full border border-card" />
             </button>
-      
             <div className="w-px h-6 bg-border/60 hidden md:block mx-0.5" />
 
      
-            <RoleSwitcher />
+          
 
           
             <div className="w-px h-6 bg-border/60 hidden md:block mx-0.5" />
@@ -340,7 +339,7 @@ const filteredNavItems = NAVIGATION_ITEMS.filter((item) => {
         </header>
 
   
-        <GlobalContextBar />
+      
 
     
         <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-background custom-scrollbar relative">
