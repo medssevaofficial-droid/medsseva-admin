@@ -39,10 +39,36 @@ export const packageService = {
     const response = await api.get('/packages');
     return response.data;
   },
+  getPackageById: async (id: string) => {
+    const response = await api.get(`/packages/${id}`);
+    return response.data;
+  },
   createPackage: async (data: any) => {
     const response = await api.post('/packages', data);
     return response.data;
   },
+  updatePackage: async (id: string, data: any) => {
+    const response = await api.put(`/packages/${id}`, data);
+    return response.data;
+  },
+};
+
+export const contentService = {
+  getTestContent: (testId: string) => api.get(`/tests/${testId}/content`).then(r => r.data),
+
+  createPreparation: (testId: string, data: { title: string; description: string; appliesTo: 'HOME' | 'LAB' | 'BOTH'; displayOrder: number; isEnabled: boolean }) =>
+    api.post(`/tests/${testId}/preparations`, data).then(r => r.data),
+  updatePreparation: (testId: string, prepId: string, data: Partial<{ title: string; description: string; appliesTo: string; displayOrder: number; isEnabled: boolean }>) =>
+    api.put(`/tests/${testId}/preparations/${prepId}`, data).then(r => r.data),
+  deletePreparation: (testId: string, prepId: string) =>
+    api.delete(`/tests/${testId}/preparations/${prepId}`).then(r => r.data),
+
+  createFAQ: (testId: string, data: { question: string; answer: string; displayOrder: number; isEnabled: boolean }) =>
+    api.post(`/tests/${testId}/faqs`, data).then(r => r.data),
+  updateFAQ: (testId: string, faqId: string, data: Partial<{ question: string; answer: string; displayOrder: number; isEnabled: boolean }>) =>
+    api.put(`/tests/${testId}/faqs/${faqId}`, data).then(r => r.data),
+  deleteFAQ: (testId: string, faqId: string) =>
+    api.delete(`/tests/${testId}/faqs/${faqId}`).then(r => r.data),
 };
 
 export const testService = {

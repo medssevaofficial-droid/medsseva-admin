@@ -17,10 +17,18 @@ import {
   Clock,
   Info,
   Zap,
-  PencilLine
+  PencilLine,
+  BookOpen,
+  ChevronUp,
+  ChevronDown,
+  Eye,
+  EyeOff,
+  FileText,
+  HelpCircle,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/utils/cn';
+import { contentService } from '@/services/api';
 
 const CATEGORIES: TestCategory[] = ['Blood', 'Diabetes', 'Thyroid', 'Cardiac', 'Liver', 'Vitamins', 'Fever', 'General'];
 
@@ -62,8 +70,188 @@ const [formParameters, setFormParameters] = useState<TestParameter[]>([]);
   const [rangeMax, setRangeMax] = useState<number | ''>('');
   const [currentRanges, setCurrentRanges] = useState<any[]>([]);
 
- const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
+const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [contentTestId, setContentTestId] = useState<string | null>(null);
+  const [contentTestName, setContentTestName] = useState('');
+  const [contentTab, setContentTab] = useState<'prep' | 'faq'>('prep');
+  const [preparations, setPreparations] = useState<any[]>([]);
+  const [faqs, setFaqs] = useState<any[]>([]);
+  const [contentLoading, setContentLoading] = useState(false);
+  const [contentSaving, setContentSaving] = useState(false);
+
+  const [prepForm, setPrepForm] = useState<{ title: string; description: string; appliesTo: 'HOME' | 'LAB' | 'BOTH'; isEnabled: boolean }>({ title: '', description: '', appliesTo: 'BOTH', isEnabled: true });
+  const [editingPrepId, setEditingPrepId] = useState<string | null>(null);
+
+  const [faqForm, setFaqForm] = useState<{ question: string; answer: string; isEnabled: boolean }>({ question: '', answer: '', isEnabled: true });
+  const [editingFaqId, setEditingFaqId] = useState<string | null>(null);
+
+  const openContentManager = async (test: MedicalTest) => {
+    setContentTestId(test.id);
+    setContentTestName(test.name);
+    setContentTab('prep');
+    setContentLoading(true);
+    resetPrepForm();
+    resetFaqForm();
+    try {
+      const data = await contentService.getTestContent(test.id);
+      setPreparations(data.preparations);
+      setFaqs(data.faqs);
+    } catch {
+      toast.error('Failed to load content');
+    } finally {
+      setContentLoading(false);
+    }
+  };
+
+  const resetPrepForm = () => {
+    setPrepForm({ title: '', description: '', appliesTo: 'BOTH', isEnabled: true });
+    setEditingPrepId(null);
+  };
+
+  const resetFaqForm = () => {
+    setFaqForm({ question: '', answer: '', isEnabled: true });
+    setEditingFaqId(null);
+  };
+
+  const handleSavePrep = async () => {
+    if (!contentTestId || !prepForm.title || !prepForm.description) {
+      toast.error('Title and description are required.');
+      return;
+    }
+    setContentSaving(true);
+    try {
+      if (editingPrepId) {
+        const updated = await contentService.updatePreparation(contentTestId, editingPrepId, { ...prepForm, displayOrder: preparations.find(p => p.id === editingPrepId)?.displayOrder ?? 0 });
+        setPreparations(prev => prev.map(p => p.id === editingPrepId ? updated : p));
+        toast.success('Guideline updated.');
+      } else {
+        const created = await contentService.createPreparation(contentTestId, { ...prepForm, displayOrder: preparations.length });
+        setPreparations(prev => [...prev, created]);
+        toast.success('Guideline added.');
+      }
+      resetPrepForm();
+    } catch {
+      toast.error('Failed to save guideline.');
+    } finally {
+      setContentSaving(false);
+    }
+  };
+
+  const handleDeletePrep = async (prepId: string) => {
+    if (!contentTestId || !window.confirm('Delete this guideline?')) return;
+    try {
+      await contentService.deletePreparation(contentTestId, prepId);
+      setPreparations(prev => prev.filter(p => p.id !== prepId));
+      toast.success('Guideline deleted.');
+    } catch {
+      toast.error('Failed to delete.');
+    }
+  };
+
+  const handleTogglePrep = async (prep: any) => {
+    if (!contentTestId) return;
+    try {
+      const updated = await contentService.updatePreparation(contentTestId, prep.id, { isEnabled: !prep.isEnabled });
+      setPreparations(prev => prev.map(p => p.id === prep.id ? updated : p));
+    } catch {
+      toast.error('Failed to toggle.');
+    }
+  };
+
+  const handleMovePrepUp = async (index: number) => {
+    if (!contentTestId || index === 0) return;
+    const reordered = [...preparations];
+    [reordered[index - 1], reordered[index]] = [reordered[index], reordered[index - 1]];
+    setPreparations(reordered);
+    try {
+      await Promise.all(reordered.map((p, i) => contentService.updatePreparation(contentTestId, p.id, { displayOrder: i })));
+    } catch {
+      toast.error('Failed to reorder.');
+    }
+  };
+
+  const handleMovePrepDown = async (index: number) => {
+    if (!contentTestId || index === preparations.length - 1) return;
+    const reordered = [...preparations];
+    [reordered[index], reordered[index + 1]] = [reordered[index + 1], reordered[index]];
+    setPreparations(reordered);
+    try {
+      await Promise.all(reordered.map((p, i) => contentService.updatePreparation(contentTestId, p.id, { displayOrder: i })));
+    } catch {
+      toast.error('Failed to reorder.');
+    }
+  };
+
+  const handleSaveFaq = async () => {
+    if (!contentTestId || !faqForm.question || !faqForm.answer) {
+      toast.error('Question and answer are required.');
+      return;
+    }
+    setContentSaving(true);
+    try {
+      if (editingFaqId) {
+        const updated = await contentService.updateFAQ(contentTestId, editingFaqId, { ...faqForm, displayOrder: faqs.find(f => f.id === editingFaqId)?.displayOrder ?? 0 });
+        setFaqs(prev => prev.map(f => f.id === editingFaqId ? updated : f));
+        toast.success('FAQ updated.');
+      } else {
+        const created = await contentService.createFAQ(contentTestId, { ...faqForm, displayOrder: faqs.length });
+        setFaqs(prev => [...prev, created]);
+        toast.success('FAQ added.');
+      }
+      resetFaqForm();
+    } catch {
+      toast.error('Failed to save FAQ.');
+    } finally {
+      setContentSaving(false);
+    }
+  };
+
+  const handleDeleteFaq = async (faqId: string) => {
+    if (!contentTestId || !window.confirm('Delete this FAQ?')) return;
+    try {
+      await contentService.deleteFAQ(contentTestId, faqId);
+      setFaqs(prev => prev.filter(f => f.id !== faqId));
+      toast.success('FAQ deleted.');
+    } catch {
+      toast.error('Failed to delete.');
+    }
+  };
+
+  const handleToggleFaq = async (faq: any) => {
+    if (!contentTestId) return;
+    try {
+      const updated = await contentService.updateFAQ(contentTestId, faq.id, { isEnabled: !faq.isEnabled });
+      setFaqs(prev => prev.map(f => f.id === faq.id ? updated : f));
+    } catch {
+      toast.error('Failed to toggle.');
+    }
+  };
+
+  const handleMoveFaqUp = async (index: number) => {
+    if (!contentTestId || index === 0) return;
+    const reordered = [...faqs];
+    [reordered[index - 1], reordered[index]] = [reordered[index], reordered[index - 1]];
+    setFaqs(reordered);
+    try {
+      await Promise.all(reordered.map((f, i) => contentService.updateFAQ(contentTestId, f.id, { displayOrder: i })));
+    } catch {
+      toast.error('Failed to reorder.');
+    }
+  };
+
+  const handleMoveFaqDown = async (index: number) => {
+    if (!contentTestId || index === faqs.length - 1) return;
+    const reordered = [...faqs];
+    [reordered[index], reordered[index + 1]] = [reordered[index + 1], reordered[index]];
+    setFaqs(reordered);
+    try {
+      await Promise.all(reordered.map((f, i) => contentService.updateFAQ(contentTestId, f.id, { displayOrder: i })));
+    } catch {
+      toast.error('Failed to reorder.');
+    }
+  };
 
   // Computed filtered tests
   const filteredTests = useMemo(() => {
@@ -475,12 +663,19 @@ const backendPayload: any = {
                       {/* Edit / Delete Operations */}
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-center gap-1.5">
-                          <button
+                  <button
                             onClick={() => openEditDrawer(test)}
                             className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors select-none active:scale-95"
                             title="Edit Details"
                           >
                             <Edit3 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => openContentManager(test)}
+                            className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors select-none active:scale-95"
+                            title="Manage Content (Prep & FAQs)"
+                          >
+                            <BookOpen className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDelete(test.id)}
@@ -939,6 +1134,247 @@ const backendPayload: any = {
         )}
       </AnimatePresence>
 
+<AnimatePresence>
+        {contentTestId && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.5 }}
+              exit={{ opacity: 0 }}
+              onClick={() => { setContentTestId(null); resetPrepForm(); resetFaqForm(); }}
+              className="fixed inset-0 z-40 bg-black"
+            />
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
+              className="fixed inset-y-0 right-0 z-50 w-full max-w-2xl bg-card border-l border-border shadow-2xl flex flex-col h-full"
+            >
+              <div className="h-16 px-6 border-b border-border flex items-center justify-between bg-gradient-to-r from-primary/5 to-transparent flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-sm">
+                    <BookOpen className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-foreground leading-none tracking-tight">Content Manager</h3>
+                    <span className="text-[10px] text-muted-foreground font-semibold tracking-widest uppercase mt-1 block leading-none truncate max-w-xs">{contentTestName}</span>
+                  </div>
+                </div>
+                <button onClick={() => { setContentTestId(null); resetPrepForm(); resetFaqForm(); }} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex border-b border-border flex-shrink-0">
+                <button
+                  onClick={() => { setContentTab('prep'); resetPrepForm(); }}
+                  className={cn('flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold transition-colors', contentTab === 'prep' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground')}
+                >
+                  <FileText className="w-4 h-4" /> Preparation Guidelines ({preparations.length})
+                </button>
+                <button
+                  onClick={() => { setContentTab('faq'); resetFaqForm(); }}
+                  className={cn('flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold transition-colors', contentTab === 'faq' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground')}
+                >
+                  <HelpCircle className="w-4 h-4" /> FAQs ({faqs.length})
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
+                {contentLoading ? (
+                  <div className="flex items-center justify-center py-16 text-muted-foreground text-sm font-medium">Loading content...</div>
+                ) : contentTab === 'prep' ? (
+                  <>
+                    <div className="p-4 border border-border/60 rounded-xl bg-muted/10 space-y-3">
+                      <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{editingPrepId ? 'Edit Guideline' : 'Add Guideline'}</h4>
+                      <input
+                        type="text"
+                        placeholder="Title (e.g. Fast for 8-12 Hours)"
+                        value={prepForm.title}
+                        onChange={e => setPrepForm(f => ({ ...f, title: e.target.value }))}
+                        className="w-full h-9 border border-border rounded-lg px-3 text-sm bg-background outline-none focus:ring-2 focus:ring-primary/15"
+                      />
+                      <textarea
+                        placeholder="Detailed description of the instruction..."
+                        value={prepForm.description}
+                        onChange={e => setPrepForm(f => ({ ...f, description: e.target.value }))}
+                        rows={3}
+                        className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background outline-none focus:ring-2 focus:ring-primary/15 resize-none"
+                      />
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 space-y-1">
+                          <label className="text-[10px] font-bold text-muted-foreground uppercase">Applies To</label>
+                          <select
+                            value={prepForm.appliesTo}
+                            onChange={e => setPrepForm(f => ({ ...f, appliesTo: e.target.value as any }))}
+                            className="w-full h-9 border border-border rounded-lg px-3 text-sm bg-background outline-none font-semibold"
+                          >
+                            <option value="BOTH">Both (Home + Lab)</option>
+                            <option value="HOME">Home Collection Only</option>
+                            <option value="LAB">Lab Visit Only</option>
+                          </select>
+                        </div>
+                        <div className="flex items-center gap-2 pt-4">
+                          <label className="text-xs font-bold text-muted-foreground">Enabled</label>
+                          <button
+                            type="button"
+                            onClick={() => setPrepForm(f => ({ ...f, isEnabled: !f.isEnabled }))}
+                            className={cn('w-10 h-5 flex items-center rounded-full p-0.5 transition-colors', prepForm.isEnabled ? 'bg-primary justify-end' : 'bg-muted border border-border justify-start')}
+                          >
+                            <motion.div layout className="w-4 h-4 bg-white rounded-full shadow-sm" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        {editingPrepId && (
+                          <button type="button" onClick={resetPrepForm} className="h-8 px-3 border border-border rounded-lg text-xs font-bold hover:bg-muted transition-colors">
+                            Cancel
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={handleSavePrep}
+                          disabled={contentSaving || !prepForm.title || !prepForm.description}
+                          className="h-8 px-4 bg-primary text-primary-foreground rounded-lg text-xs font-bold flex items-center gap-1.5 disabled:opacity-50 transition-colors hover:bg-primary/90"
+                        >
+                          <Check className="w-3.5 h-3.5" /> {editingPrepId ? 'Update' : 'Add Guideline'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {preparations.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                        <FileText className="w-10 h-10 opacity-20 mb-3" />
+                        <p className="text-sm font-medium">No preparation guidelines yet.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {preparations.map((prep, index) => (
+                          <div key={prep.id} className={cn('p-3.5 border rounded-xl', prep.isEnabled ? 'bg-card border-border' : 'bg-muted/30 border-border/40 opacity-60')}>
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap mb-1">
+                                  <span className="text-sm font-bold text-foreground">{prep.title}</span>
+                                  <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', prep.appliesTo === 'HOME' ? 'bg-blue-100 text-blue-700' : prep.appliesTo === 'LAB' ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700')}>
+                                    {prep.appliesTo}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{prep.description}</p>
+                              </div>
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                <button type="button" onClick={() => handleMovePrepUp(index)} disabled={index === 0} className="p-1 rounded hover:bg-muted disabled:opacity-30 transition-colors">
+                                  <ChevronUp className="w-3.5 h-3.5" />
+                                </button>
+                                <button type="button" onClick={() => handleMovePrepDown(index)} disabled={index === preparations.length - 1} className="p-1 rounded hover:bg-muted disabled:opacity-30 transition-colors">
+                                  <ChevronDown className="w-3.5 h-3.5" />
+                                </button>
+                                <button type="button" onClick={() => handleTogglePrep(prep)} className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+                                  {prep.isEnabled ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                                </button>
+                                <button type="button" onClick={() => { setEditingPrepId(prep.id); setPrepForm({ title: prep.title, description: prep.description, appliesTo: prep.appliesTo, isEnabled: prep.isEnabled }); }} className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-primary">
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                <button type="button" onClick={() => handleDeletePrep(prep.id)} className="p-1 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive">
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className="p-4 border border-border/60 rounded-xl bg-muted/10 space-y-3">
+                      <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{editingFaqId ? 'Edit FAQ' : 'Add FAQ'}</h4>
+                      <input
+                        type="text"
+                        placeholder="Question (e.g. What does a CBC test measure?)"
+                        value={faqForm.question}
+                        onChange={e => setFaqForm(f => ({ ...f, question: e.target.value }))}
+                        className="w-full h-9 border border-border rounded-lg px-3 text-sm bg-background outline-none focus:ring-2 focus:ring-primary/15"
+                      />
+                      <textarea
+                        placeholder="Detailed answer..."
+                        value={faqForm.answer}
+                        onChange={e => setFaqForm(f => ({ ...f, answer: e.target.value }))}
+                        rows={4}
+                        className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background outline-none focus:ring-2 focus:ring-primary/15 resize-none"
+                      />
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs font-bold text-muted-foreground">Enabled</label>
+                          <button
+                            type="button"
+                            onClick={() => setFaqForm(f => ({ ...f, isEnabled: !f.isEnabled }))}
+                            className={cn('w-10 h-5 flex items-center rounded-full p-0.5 transition-colors', faqForm.isEnabled ? 'bg-primary justify-end' : 'bg-muted border border-border justify-start')}
+                          >
+                            <motion.div layout className="w-4 h-4 bg-white rounded-full shadow-sm" />
+                          </button>
+                        </div>
+                        <div className="flex gap-2">
+                          {editingFaqId && (
+                            <button type="button" onClick={resetFaqForm} className="h-8 px-3 border border-border rounded-lg text-xs font-bold hover:bg-muted transition-colors">
+                              Cancel
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={handleSaveFaq}
+                            disabled={contentSaving || !faqForm.question || !faqForm.answer}
+                            className="h-8 px-4 bg-primary text-primary-foreground rounded-lg text-xs font-bold flex items-center gap-1.5 disabled:opacity-50 transition-colors hover:bg-primary/90"
+                          >
+                            <Check className="w-3.5 h-3.5" /> {editingFaqId ? 'Update' : 'Add FAQ'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {faqs.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                        <HelpCircle className="w-10 h-10 opacity-20 mb-3" />
+                        <p className="text-sm font-medium">No FAQs yet.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {faqs.map((faq, index) => (
+                          <div key={faq.id} className={cn('p-3.5 border rounded-xl', faq.isEnabled ? 'bg-card border-border' : 'bg-muted/30 border-border/40 opacity-60')}>
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-bold text-foreground mb-1 leading-snug">{faq.question}</p>
+                                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{faq.answer}</p>
+                              </div>
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                <button type="button" onClick={() => handleMoveFaqUp(index)} disabled={index === 0} className="p-1 rounded hover:bg-muted disabled:opacity-30 transition-colors">
+                                  <ChevronUp className="w-3.5 h-3.5" />
+                                </button>
+                                <button type="button" onClick={() => handleMoveFaqDown(index)} disabled={index === faqs.length - 1} className="p-1 rounded hover:bg-muted disabled:opacity-30 transition-colors">
+                                  <ChevronDown className="w-3.5 h-3.5" />
+                                </button>
+                                <button type="button" onClick={() => handleToggleFaq(faq)} className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+                                  {faq.isEnabled ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                                </button>
+                                <button type="button" onClick={() => { setEditingFaqId(faq.id); setFaqForm({ question: faq.question, answer: faq.answer, isEnabled: faq.isEnabled }); }} className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-primary">
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                <button type="button" onClick={() => handleDeleteFaq(faq.id)} className="p-1 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive">
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
